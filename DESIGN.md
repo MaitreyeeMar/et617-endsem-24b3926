@@ -77,3 +77,8 @@ The workbench now uses three sliders with live simulation, replacing the press-t
 - one meter.
 
 Slider movement is a preview only. "Save trial" records a reading. Guided tasks unlock the relevant slider after the prediction is saved. In the final challenge, the learner chooses which property to change to restore the current.
+
+## 10. Revision v3 — learner-facing refinements
+- **Single-variable tasks:** the active slider sits directly under the circuit, with one "Fixed:" line for the other properties. Wire, end face and meter all stay on screen while dragging at 360 px.
+- **"Original wire | My trial" switch:** appears after Save trial and reads the two saved snapshots. It swaps the geometry, end face, meter and dot rate together, without changing the drawing scale or the marker. Current bars show both readings. The learner answers one observation question before the conclusion is shown.
+- **Light/Dark theme:** follows the device setting by default; the learner's choice is saved.

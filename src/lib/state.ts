@@ -51,6 +51,7 @@ export interface TaskState {
   nextChoice: string | null;
   workedShown: boolean;
   done: boolean;
+  viewing?: "original" | "trial";
 }
 
 export interface AppState {

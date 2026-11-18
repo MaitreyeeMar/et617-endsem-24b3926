@@ -92,6 +92,10 @@ Screenshots of the live app: **[FILL: opening screen]**, **[FILL: Task 1 misconc
 | v2 formula stability | **[VERIFIED]** fraction bar did not move while symbols rescaled |
 | v2 resume | **[VERIFIED]** refresh restored slider positions (L 2.00, A 1.00), unlocked sliders and live reading |
 | v2 misconception feedback after Save trial | **[VERIFIED]** length ("…because it has more metal… lower… half the rate") and area ("…more material is in the way… higher… twice as fast") |
+| v3 focused layout at 360 px (area task, light + dark) | **[VERIFIED]** while dragging, wire (197–310 px), end face, slider and live meter (486–520 px) all sit above the action bar (666 px); fixed properties shown as one line "Fixed: Nichrome (ρ 1.10) · L 1.00 m"; Free Bench keeps all 3 sliders |
+| v3 "Original wire / My trial" switch (area task) | **[VERIFIED]** light + dark: Original 45.45 mA, 1.50 dots/s, thickness 15.56 px, end-face r 21.21; My trial 90.91 mA, 3.00 dots/s, thickness 22 px, r 30 (area ratio 2.00); length scale and marker unchanged; bars show both currents; no notebook entries; slider draft unchanged |
+| v3 observation before conclusion | **[VERIFIED]** after Save trial only a prompt to use the switch appears; the conclusion shows after the observation question is answered; area clue 1 = "Watch how many dots pass the marker." |
+| v3 theme | **[VERIFIED]** toggle is keyboard-operable (Enter), defaults to the device setting, override persisted (`wirelab-theme`) and applied before first paint; reload after toggling kept task, answers, trials and the switch view; reduced motion starts with the flow paused |
 | End view area doubles | **[VERIFIED]** radius 24.04 → 34 px, area ratio 2.000 |
 | Narrow mobile (375 px) | **[VERIFIED]** rigs stacked, no horizontal scroll, primary action fixed at bottom |
 | AI fallback | **[VERIFIED]** live endpoint returns `missing_key`; UI shows "Using built-in feedback" with a trial-specific prompt |

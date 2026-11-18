@@ -8,6 +8,7 @@ import { Guided } from "./Guided";
 import { FreeBench } from "./FreeBench";
 import { Notebook } from "./Notebook";
 import { About } from "./About";
+import { ThemeToggle } from "./ThemeToggle";
 
 const TABS: { id: View; label: string }[] = [
   { id: "guided", label: "Guided" },
@@ -66,6 +67,7 @@ export default function WireLabApp() {
     const where = !g.started ? "the start" : g.index < 5 ? `Task ${g.index + 1} of 5` : g.index === 5 ? "the transfer questions" : "the summary";
     return (
       <div className="app">
+        <div className="leave-top"><ThemeToggle /></div>
         <main className="leave">
           <h1>{UI.savedTitle}</h1>
           <p>{UI.savedBody}</p>
@@ -106,6 +108,7 @@ export default function WireLabApp() {
           ))}
         </nav>
         <div className="top-actions">
+          <ThemeToggle />
           <button className="btn btn-ghost" onClick={() => { if (stateRef.current) saveState(stateRef.current); setLeft(true); }}>
             {UI.saveLeave}
           </button>

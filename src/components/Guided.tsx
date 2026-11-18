@@ -11,7 +11,7 @@ import {
 import { findTrial, makeTrial, newTaskState, reference, type AppState, type FeedbackMsg, type TaskState, type Trial } from "@/lib/state";
 import { resetDraft, saveTrial, setDraft, type Updater } from "@/lib/actions";
 import { branchFor, classifyReasonText, describeTrial, getExplanationFeedback, listProps } from "@/lib/feedback";
-import { Bench } from "./Bench";
+import { Bench, type CompareSpec } from "./Bench";
 
 type P = { s: AppState; update: Updater };
 
@@ -144,8 +144,10 @@ export function Guided({ s, update }: P) {
   const ref = reference(s);
   const [busy, setBusy] = useState(false);
 
-  const benchFor = (unlocked: Property[], note?: string, saved: Trial[] = []) => (
+  const benchFor = (unlocked: Property[], note?: string, saved: Trial[] = [], opts: { focus?: Property; compare?: CompareSpec } = {}) => (
     <Bench
+      focus={opts.focus}
+      compare={opts.compare}
       draft={s.draft}
       referenceTrial={ref}
       referenceLabel={BENCH_TEXT.referenceLabel}
@@ -163,7 +165,7 @@ export function Guided({ s, update }: P) {
         <section className="panel task">
           <p className="eyebrow">Inquiry lab · Class 10 · about 8 minutes</p>
           <h1 className="challenge">{CHALLENGE}</h1>
-          <p>You have two tests side by side. Test A is a fixed reference wire. Test B is your wire to adjust. Both get the same 0.10 V.</p>
+          <p>The dashed outline is the reference wire: nichrome, 1.00 m, 0.50 mm². The solid wire is yours to change with the sliders. Both get the same 0.10 V.</p>
           <p className="muted">{UI.privacy} You can stop at any time — your place is saved.</p>
         </section>
         {benchFor([], "Sliders unlock in Task 1")}
@@ -257,20 +259,20 @@ export function Guided({ s, update }: P) {
               tt.trialIds.push(tr.id);
               const ch = changedProperties(REFERENCE_WIRE, tr.settings);
               if (sameSettings(tr.settings, cfg.target)) {
+                // No conclusion yet: point to the comparison switch; the observation question comes first.
                 const dir = direction(reference(d).current, tr.current);
                 const chip = cfg.chips.find((c) => c.id === tt.reasonChip);
                 const kind = tt.reasonDraft.trim() ? classifyReasonText(id, tt.reasonDraft) : chip?.kind ?? "unsure";
-                const a = fmtmA(reference(d).current), b = fmtmA(tr.current);
                 tt.feedback =
-                  dir === tt.prediction && tt.branch === "sound"
-                    ? { tone: "good", text: `Saved: ${a} mA → ${b} mA.` }
+                  tt.branch === "sound"
+                    ? { tone: "info", text: cfg.afterSave.sound }
                     : kind === "length_misconception" || kind === "area_misconception"
-                      ? { tone: "nudge", text: cfg.afterSave[kind](a, b) }
+                      ? { tone: "nudge", text: cfg.afterSave[kind] }
                       : dir !== tt.prediction
-                        ? { tone: "nudge", text: cfg.afterSave.wrongDirection(a, b) }
-                        : { tone: "info", text: cfg.afterSave.unsure(a, b) };
-                tt.stage = tt.branch === "sound" ? "result" : "compare";
-                if (tt.branch === "sound" && id === "length") d.guided.formulaRevealed = true;
+                        ? { tone: "nudge", text: cfg.afterSave.wrongDirection }
+                        : { tone: "info", text: cfg.afterSave.unsure };
+                tt.stage = "compare";
+                tt.viewing = "trial";
               } else if (!ch.includes(id)) {
                 tt.feedback = { tone: "nudge", text: `This trial did not change the ${id}. ${cfg.setupHint}` };
               } else if (ch.length > 1) {
@@ -295,11 +297,11 @@ export function Guided({ s, update }: P) {
           <div className="choice-row" role="radiogroup" aria-label="Higher reading">
             <label className={`choice ${t.higher === "reference" ? "on" : ""}`}>
               <input type="radio" name={`hi-${id}`} checked={t.higher === "reference"} onChange={() => patch((tt) => void (tt.higher = "reference"))} />
-              <span>Test A · reference ({fmtmA(ref.current)} mA)</span>
+              <span>Original wire</span>
             </label>
             <label className={`choice ${t.higher === "test" ? "on" : ""}`}>
               <input type="radio" name={`hi-${id}`} checked={t.higher === "test"} onChange={() => patch((tt) => void (tt.higher = "test"))} />
-              <span>Test B · your wire ({fmtmA(testTrial.current)} mA)</span>
+              <span>My trial</span>
             </label>
           </div>
           {full && (
@@ -329,11 +331,11 @@ export function Guided({ s, update }: P) {
               const rightHigher = id === "length" ? "reference" : "test";
               const sameOk = !full || (["voltage", ...fixed].every((p) => (tt.same as string[]).includes(p)) && !(tt.same as string[]).includes(id));
               if (tt.higher !== rightHigher) {
-                tt.feedback = { tone: "nudge", text: "Look at the two big meter numbers again. Which one is larger?" };
+                tt.feedback = { tone: "nudge", text: "Switch between Original wire and My trial. Watch the meter number and count the dots passing the marker." };
               } else if (!sameOk) {
-                tt.feedback = { tone: "nudge", text: `The higher reading is right. Now check each row on the two rigs: which ones match? Only the ${id} was changed.` };
+                tt.feedback = { tone: "nudge", text: `The higher reading is right. Now switch views and read the settings line under the meter: which ones match? Only the ${id} was changed.` };
               } else {
-                tt.feedback = { tone: "good", text: cfg.reveal };
+                tt.feedback = { tone: "good", text: (tt.branch === "sound" ? "Your prediction matched the meter. " : "") + cfg.reveal };
                 if (id === "length") d.guided.formulaRevealed = true;
                 tt.stage = full ? "revise" : "done";
                 if (full && !tt.revisedDraft) tt.revisedDraft = cfg.reviseStarter;
@@ -766,6 +768,16 @@ export function Guided({ s, update }: P) {
     }
   }
 
+  // Single-variable tasks: one slider directly under the circuit.
+  const singleProp: Property | undefined = id === "length" || id === "area" ? id : id === "material" ? "material" : undefined;
+  const focus: Property | undefined = unlocked.length === 1 ? unlocked[0] : unlocked.length === 0 ? singleProp : undefined;
+  // "Original wire | My trial" switch: reads two saved snapshots, never the draft.
+  let compare: CompareSpec | undefined;
+  if ((id === "length" || id === "area") && t.stage !== "predict" && t.stage !== "test") {
+    const tr = findTrial(s, t.trialIds[t.trialIds.length - 1]);
+    if (tr) compare = { original: ref, trial: tr, viewing: t.viewing ?? "trial", onSwitch: (v) => patch((tt) => void (tt.viewing = v)) };
+  }
+
   return (
     <div className="layout">
       <section className="panel task" aria-labelledby="task-title">
@@ -776,7 +788,7 @@ export function Guided({ s, update }: P) {
         {g.formulaRevealed && id !== "length" && <Formula />}
         {g.formulaRevealed && id === "length" && t.stage !== "test" && <Formula />}
       </section>
-      {benchFor(unlocked, benchNote, t.trialIds.map((x) => findTrial(s, x)).filter((x): x is Trial => !!x))}
+      {benchFor(unlocked, benchNote, t.trialIds.map((x) => findTrial(s, x)).filter((x): x is Trial => !!x), { focus, compare })}
       <ActionBar>{action}</ActionBar>
     </div>
   );

@@ -49,20 +49,21 @@ export const PREDICT_TASKS = {
       { id: "l-unsure", text: "I'm not sure yet.", kind: "unsure" },
     ] as ReasonChip[],
     afterSave: {
-      length_misconception: (ref: string, now: string) =>
-        `You expected the longer wire to carry more current because it has more metal. The meter says ${now} mA — lower than the reference ${ref} mA. The dots crossed the marker at half the rate.`,
-      area_misconception: (ref: string, now: string) => `The reading went from ${ref} mA to ${now} mA.`,
-      wrongDirection: (ref: string, now: string) => `You predicted a different change. The meter went from ${ref} mA to ${now} mA.`,
-      unsure: (ref: string, now: string) => `Saved. The meter went from ${ref} mA to ${now} mA. Let's check what that shows.`,
+      length_misconception:
+        "Trial saved. You said a longer wire has more metal, so more current can flow. Test that idea: use the switch above the circuit to compare your trial with the original wire.",
+      area_misconception: "Trial saved. Use the switch above the circuit to compare your trial with the original wire.",
+      wrongDirection: "Trial saved. Does the meter agree with your prediction? Use the switch above the circuit to compare.",
+      unsure: "Trial saved. Use the switch above the circuit to compare your trial with the original wire.",
+      sound: "Trial saved. Use the switch above the circuit to compare your trial with the original wire.",
     },
     compareQuestion: "Which wire gave the higher reading? What stayed the same?",
-    evidenceQuestion: "Which wire gave the higher reading?",
+    evidenceQuestion: "Switch between the two views. Which one gives the higher reading and sends more dots past the marker?",
     reveal:
       "The 2.00 m wire gave a lower current. Double the length means double the resistance (2.20 Ω → 4.40 Ω), so the current halves (45.45 → 22.73 mA).",
     revisePrompt: "Write your new claim. Use the two readings.",
     reviseStarter: "When only the length doubled, the current ",
     clues: [
-      "Look at the two meters. Which number is bigger?",
+      "Watch how many dots pass the marker in each view.",
       "More length is like a longer, narrow corridor. It is harder to get through.",
     ],
   },
@@ -78,20 +79,22 @@ export const PREDICT_TASKS = {
       { id: "a-unsure", text: "I'm not sure yet.", kind: "unsure" },
     ] as ReasonChip[],
     afterSave: {
-      length_misconception: (ref: string, now: string) => `The reading went from ${ref} mA to ${now} mA.`,
-      area_misconception: (ref: string, now: string) =>
-        `You expected the thicker wire to block more current because more material is in the way. The meter says ${now} mA — higher than the reference ${ref} mA. The dots crossed the marker twice as fast.`,
-      wrongDirection: (ref: string, now: string) => `You predicted a different change. The meter went from ${ref} mA to ${now} mA.`,
-      unsure: (ref: string, now: string) => `Saved. The meter went from ${ref} mA to ${now} mA. Let's check what that shows.`,
+      length_misconception: "Trial saved. Use the switch above the circuit to compare your trial with the original wire.",
+      area_misconception:
+        "Trial saved. You said a thicker wire puts more material in the way, so less current. Test that idea: use the switch above the circuit to compare your trial with the original wire.",
+      wrongDirection: "Trial saved. Does the meter agree with your prediction? Use the switch above the circuit to compare.",
+      unsure: "Trial saved. Use the switch above the circuit to compare your trial with the original wire.",
+      sound: "Trial saved. Use the switch above the circuit to compare your trial with the original wire.",
     },
     compareQuestion: "Which wire gave the higher reading? What stayed the same?",
-    evidenceQuestion: "Which wire gave the higher reading?",
+    evidenceQuestion: "Switch between the two views. Which one gives the higher reading and sends more dots past the marker?",
     reveal:
       "The thicker wire gave a higher current. The end-view circle has double the area, so there are twice as many paths side by side. Resistance halves (2.20 Ω → 1.10 Ω), current doubles (45.45 → 90.91 mA).",
-    revisePrompt: "Write your new claim. Use the two readings and the end views.",
+    revisePrompt: "Write your new claim. Use the two readings and the end faces.",
     reviseStarter: "When only the area doubled, the current ",
     clues: [
-      "Compare the two end-view circles. The cross-sectional area is the size of the cut face.",
+      "Watch how many dots pass the marker.",
+      "Compare the two end faces. The cross-sectional area is the size of the cut face.",
       "A wider road lets more cars pass at once.",
     ],
   },
