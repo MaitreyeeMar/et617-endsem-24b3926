@@ -2,7 +2,7 @@
 // Used for prediction branching and as the fallback when AI is unavailable.
 import { FOLLOW_UPS, type AiCategory, type ReasonKind, type TaskId, BUILT_IN_NOTICE } from "../config/content.ts";
 import { MATERIALS } from "../config/physics.ts";
-import { changedProperties, fmtmA, type Property } from "./physics.ts";
+import { changedProperties, currentsMatch, fmtmA, type Property } from "./physics.ts";
 import type { Branch, FeedbackMsg, Trial } from "./state.ts";
 
 const has = (t: string, words: string[]) => words.some((w) => t.includes(w));
@@ -54,7 +54,8 @@ export function builtInFollowUp(task: TaskId, text: string, trials: Trial[]): Fe
     const [a, b] = trials;
     const ch = changedProperties(a.settings, b.settings);
     const hi = a.current >= b.current ? a : b;
-    specific = ` ${a.label} gave ${fmtmA(a.current)} mA and ${b.label} gave ${fmtmA(b.current)} mA. Changed: ${listProps(ch)}. ${hi.label} had less resistance.`;
+    const tail = currentsMatch(a.current, b.current) ? "Both have the same resistance." : `${hi.label} had less resistance.`;
+    specific = ` ${a.label} gave ${fmtmA(a.current)} mA and ${b.label} gave ${fmtmA(b.current)} mA. Changed: ${listProps(ch)}. ${tail}`;
   }
   return { tone: cat === "supported_reasoning" ? "good" : "nudge", text: FOLLOW_UPS[cat] + specific, source: "built-in", category: cat };
 }
