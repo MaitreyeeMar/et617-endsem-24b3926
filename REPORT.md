@@ -9,7 +9,7 @@
 | Card | P5 Inquiry-based virtual laboratory · P5-T4 Electrical resistance: length, area, material (Class 10) · L5 repeating learner, high anxiety, low self-efficacy · C4 ≤ 10-minute sequence with stop/resume |
 | App | WireLab: The Mystery Wire |
 | Live URL | https://et617-24b3926.vercel.app **[VERIFIED: HTTP 200, roll number present]** |
-| Repository | et617-endsem-24B3926 **[FILL: GitHub URL]** |
+| Repository | https://github.com/MaitreyeeMar/et617-endsem-24b3926 |
 | Stack | Next.js 16 + TypeScript + plain CSS, deployed on Vercel |
 
 ## D1 — Educational problem and learner
