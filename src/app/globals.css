@@ -420,3 +420,31 @@ button, input, textarea { font: inherit; color: inherit; }
   .tab { white-space: nowrap; font-size: 0.82rem; padding: 0.4rem 0.2rem; }
   .layout > .task { scroll-margin-top: 100px; }
 }
+
+/* ── Mystery Wire (optional notebook activity) ── */
+.ml-card { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; border-color: var(--accent); }
+.ml-card h2 { margin-bottom: 0.25rem; }
+.ml-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+.ml-known { margin: 0; padding-left: 1.1rem; font-size: 0.85rem; color: var(--ink-2); }
+.ml-readings { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+.ml-reading { background: var(--meter-bg); border: 1px solid var(--line); border-radius: 12px; padding: 0.55rem 0.75rem; color: #e9f1f2; }
+.ml-r-title { font-size: 0.72rem; color: #a9b4bf; text-transform: uppercase; letter-spacing: 0.04em; }
+.ml-r-val { font-size: 1.75rem; font-weight: 650; color: #e9f1f2; font-variant-numeric: tabular-nums; }
+.ml-reading-accent .ml-r-val { color: #7fe3ea; }
+.ml-r-val span { font-size: 0.85rem; color: #a9b4bf; }
+.ml-r-sub { font-size: 0.72rem; color: #a9b4bf; }
+.ml-hidden { display: flex; align-items: center; gap: 0.75rem; min-height: 120px; border: 2px dashed var(--line-strong); border-radius: 12px; padding: 0.75rem 1rem; background: repeating-linear-gradient(135deg, var(--panel-2) 0 10px, var(--panel) 10px 20px); }
+.ml-hidden span { font: 700 2.4rem/1 Georgia, serif; color: var(--ink-3); }
+.ml-hidden p { margin: 0; font-size: 0.9rem; color: var(--ink-2); }
+.ml-inspect { margin: 0.5rem 0; }
+.ml-evidence { margin: 0.5rem 0; background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 0.5rem; }
+.ml-svg { width: 100%; height: auto; display: block; }
+.checks-col { border: 0; padding: 0; margin: 0.5rem 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.checks-col legend { font-weight: 650; margin-bottom: 0.35rem; padding: 0; }
+@media (max-width: 860px) { .ml-readings { grid-template-columns: 1fr 1fr; } .ml-r-val { font-size: 1.45rem; } }
+/* Grid items must be allowed to shrink so wide notebook tables scroll inside .table-wrap, not the page. */
+.layout > * { min-width: 0; }
+@media (max-width: 860px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+.ml-r-title { text-transform: none; letter-spacing: 0; font-size: 0.78rem; }
+/* Phone: show the readings and known conditions before the question. */
+@media (max-width: 860px) { .ml-layout > .bench { order: -1; } }

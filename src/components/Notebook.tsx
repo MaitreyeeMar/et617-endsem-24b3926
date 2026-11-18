@@ -5,6 +5,8 @@ import { changedProperties, currentsMatch, fmtmA, fmtOhm, type Property } from "
 import { findTrial, type AppState, type Trial } from "@/lib/state";
 import type { Updater } from "@/lib/actions";
 import { listProps } from "@/lib/feedback";
+import { MYSTERY_LAB } from "@/config/content";
+import { MysteryLab } from "./MysteryLab";
 
 const CTX: Record<string, string> = {
   reference: "Reference", given: "Given", free: "Free Bench",
@@ -35,11 +37,24 @@ export function CompareView({ a, b }: { a: Trial; b: Trial }) {
 }
 
 export function Notebook({ s, update }: { s: AppState; update: Updater }) {
+  if (s.notebookTab === "mystery") return <MysteryLab s={s} update={update} />;
+  const log = s.mysteryLog ?? [];
+  const labDone = s.mysteryLab ? Object.values(s.mysteryLab.cases).filter((c) => c.stage === "done").length : 0;
   const ev = s.notebookEvidence.map((id) => findTrial(s, id)).filter((x): x is Trial => !!x);
   const toggle = (id: string) =>
     update((d) => void (d.notebookEvidence = d.notebookEvidence.includes(id) ? d.notebookEvidence.filter((x) => x !== id) : d.notebookEvidence.length >= 2 ? [d.notebookEvidence[1], id] : [...d.notebookEvidence, id]));
   return (
     <div className="layout layout-wide">
+      <section className="panel ml-card">
+        <div>
+          <p className="eyebrow">Optional activity</p>
+          <h2>{MYSTERY_LAB.title}: can the meter alone tell you what changed?</h2>
+          <p className="muted small">{MYSTERY_LAB.intro} {labDone > 0 ? `${labDone} of 2 solved.` : "Two short cases."}</p>
+        </div>
+        <button className="btn btn-primary" onClick={() => update((d) => void (d.notebookTab = "mystery"))}>
+          {s.mysteryLab ? "Continue the Mystery Wire" : "Open the Mystery Wire"}
+        </button>
+      </section>
       <section className="panel">
         <p className="eyebrow">Lab Notebook</p>
         <h2>Every test you ran is kept here — including the ones that did not work.</h2>
@@ -95,6 +110,31 @@ export function Notebook({ s, update }: { s: AppState; update: Updater }) {
           </table>
         </div>
       </section>
+      {log.length > 0 && (
+        <section className="panel">
+          <h3>Mystery Wire claims</h3>
+          <div className="table-wrap">
+            <table className="nb">
+              <thead>
+                <tr><th scope="col">Case</th><th scope="col">Meter alone?</th><th scope="col">Inspected</th><th scope="col">Claim</th><th scope="col">Supporting observation</th><th scope="col">Own words</th><th scope="col">Result</th></tr>
+              </thead>
+              <tbody>
+                {log.map((e, i) => (
+                  <tr key={i}>
+                    <td>{e.label}</td>
+                    <td>{MYSTERY_LAB.answers.find((a) => a.id === e.first)?.text ?? "—"}</td>
+                    <td>{e.inspected.map((k) => (k === "ruler" ? "ruler" : "end faces")).join(", ") || "—"}</td>
+                    <td>{e.claim}</td>
+                    <td>{e.observation}</td>
+                    <td>{e.text ? `“${e.text}”` : "—"}</td>
+                    <td>{e.correct ? "Supported" : <span className="tag">revise</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

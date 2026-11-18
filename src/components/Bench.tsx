@@ -1,7 +1,7 @@
 "use client";
 // Live workbench: formula above one large illustrated wire, flow-dot cue, one meter, three sliders.
 // Slider movement is a LIVE PREVIEW (draft only). Notebook entries are made only by "Save trial".
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   AREA_RANGE, LENGTH_RANGE, MATERIALS, MATERIAL_IDS, VOLTAGE_V, FLOW_MAX_DOTS_PER_S, type WireSettings,
 } from "@/config/physics";
@@ -83,12 +83,13 @@ export function LiveFormula({ w }: { w: WireSettings }) {
   );
 }
 
-function WireScene({ w, ghost, current, paused }: { w: WireSettings; ghost: WireSettings | null; current: number; paused: boolean }) {
+export function WireScene({ w, ghost, current, paused }: { w: WireSettings; ghost: WireSettings | null; current: number; paused: boolean }) {
   const clipX = xFor(w.length);
   const thick = THICK_MAX * Math.sqrt(w.area);
   const faceR = FACE_R_MAX * Math.sqrt(w.area);
   const colour = MATERIALS[w.material].colour;
   const dotsRef = useRef<SVGGElement>(null);
+  const clipId = "lead-clip-" + useId().replace(/[^a-zA-Z0-9]/g, "");
   const phase = useRef(0);
   const rateRef = useRef(0);
   const { rate } = flowRate(current);
@@ -119,7 +120,7 @@ function WireScene({ w, ghost, current, paused }: { w: WireSettings; ghost: Wire
     <svg viewBox="0 0 400 196" className="scene" role="img"
       aria-label={`Illustrated ${MATERIALS[w.material].label} wire, ${w.length.toFixed(2)} metres long, cross-sectional area ${w.area.toFixed(2)} square millimetres.${ghost ? ` Dashed outline shows the reference wire, ${ghost.length.toFixed(2)} m and ${ghost.area.toFixed(2)} mm².` : ""}`}>
       <defs>
-        <clipPath id="lead-clip"><rect x={X0} y={LEAD_Y - 8} width={clipX - X0} height={16} /></clipPath>
+        <clipPath id={clipId}><rect x={X0} y={LEAD_Y - 8} width={clipX - X0} height={16} /></clipPath>
         <linearGradient id="wire-shine" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#fff" stopOpacity="0.45" />
           <stop offset="0.5" stopColor="#fff" stopOpacity="0" />
@@ -140,7 +141,7 @@ function WireScene({ w, ghost, current, paused }: { w: WireSettings; ghost: Wire
         <text x={X0 + 16} y={131} fontSize={10.5} fill="var(--ink-2)">{VOLTAGE_V.toFixed(2)} V</text>
       </g>
       {/* flow dots on the bottom lead + fixed marker */}
-      <g clipPath="url(#lead-clip)">
+      <g clipPath={`url(#${clipId})`}>
         <g ref={dotsRef}>
           {dots.map((x) => <circle key={x} cx={x} cy={LEAD_Y} r={3.6} fill="var(--accent)" />)}
         </g>
@@ -250,6 +251,8 @@ function CurrentBars({ a, b, active }: { a: Trial; b: Trial; active: "original" 
     </div>
   );
 }
+
+export { usePrefersReducedMotion, xFor, X0, SPAN, FACE_R_MAX, fmtRho };
 
 export function Bench(props: BenchProps) {
   const { draft, onChange, unlocked, referenceTrial: ref, compare, focus } = props;

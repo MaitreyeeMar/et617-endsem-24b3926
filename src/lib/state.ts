@@ -54,6 +54,36 @@ export interface TaskState {
   viewing?: "original" | "trial";
 }
 
+export type MysteryStage = "ask" | "inspect" | "claim" | "done";
+export interface MysteryCaseState {
+  stage: MysteryStage;
+  first: string | null; // answer to "Can the meter alone tell you?"
+  inspected: ("ruler" | "faces")[];
+  claim: string | null;
+  obs: string | null;
+  text: string;
+  feedback: FeedbackMsg | null;
+}
+export interface MysteryLogEntry {
+  label: string; // "Mystery 1" / "Mystery 2"
+  first: string | null;
+  inspected: string[];
+  claim: string;
+  observation: string;
+  text: string;
+  correct: boolean;
+  at: number;
+}
+export interface MysteryLabState {
+  order: ("X" | "Y")[];
+  active: number; // index into order
+  cases: Record<"X" | "Y", MysteryCaseState>;
+}
+export const newMysteryCase = (): MysteryCaseState => ({ stage: "ask", first: null, inspected: [], claim: null, obs: null, text: "", feedback: null });
+export function newMysteryLab(): MysteryLabState {
+  return { order: Math.random() < 0.5 ? ["X", "Y"] : ["Y", "X"], active: 0, cases: { X: newMysteryCase(), Y: newMysteryCase() } };
+}
+
 export interface AppState {
   v: 1;
   createdAt: number;
@@ -68,6 +98,9 @@ export interface AppState {
   pinnedId: string | null;
   compareIds: string[];
   notebookEvidence: string[];
+  notebookTab?: "records" | "mystery";
+  mysteryLab?: MysteryLabState;
+  mysteryLog?: MysteryLogEntry[];
   guided: {
     started: boolean;
     index: number; // 0..4 tasks, 5 = transfer, 6 = finished

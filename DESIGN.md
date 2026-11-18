@@ -82,3 +82,10 @@ Slider movement is a preview only. "Save trial" records a reading. Guided tasks 
 - **Single-variable tasks:** the active slider sits directly under the circuit, with one "Fixed:" line for the other properties. Wire, end face and meter all stay on screen while dragging at 360 px.
 - **"Original wire | My trial" switch:** appears after Save trial and reads the two saved snapshots. It swaps the geometry, end face, meter and dot rate together, without changing the drawing scale or the marker. Current bars show both readings. The learner answers one observation question before the conclusion is shown.
 - **Light/Dark theme:** follows the device setting by default; the learner's choice is saved.
+
+## 11. Optional Notebook activity — The Mystery Wire
+This activity sits outside the timed five-task sequence.
+- **Setup:** an original nichrome wire (1.00 m, 0.50 mm²) and a hidden mystery wire, both at 0.10 V. The two cases are double the length or half the area; both give 22.73 mA.
+- **Question:** "Can the meter alone tell you what changed?"
+- **Inspection:** the learner inspects the ruler or the end faces, each shown for both wires on one scale.
+- **Claim:** the learner makes a revised claim and picks one supporting observation, which are saved to the Notebook. A full reveal follows, then "Try the other mystery".

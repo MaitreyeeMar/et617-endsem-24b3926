@@ -242,3 +242,56 @@ export const UI = {
   savedBody: "When you come back on this phone, you will continue exactly where you stopped.",
   privacy: "Retries are private. Nobody sees your guesses.",
 };
+
+// ── Optional Notebook activity: The Mystery Wire (outside the 5-task sequence) ──
+// Case ids are neutral ("X", "Y") so nothing in the UI or state names the answer.
+export type MysteryCaseId = "X" | "Y";
+export const MYSTERY_LAB = {
+  title: "The Mystery Wire",
+  intro: "Optional activity. It is not part of the five guided tasks.",
+  original: { material: "nichrome", length: 1.0, area: 0.5 } as WireSettings,
+  cases: {
+    X: { settings: { material: "nichrome", length: 2.0, area: 0.5 } as WireSettings, changed: "length" as const },
+    Y: { settings: { material: "nichrome", length: 1.0, area: 0.25 } as WireSettings, changed: "area" as const },
+  },
+  known: [
+    "Both wires are nichrome.",
+    "Both get the same 0.10 V.",
+    "Constant temperature, ideal meter.",
+    "Exactly one property of the mystery wire is different: its length or its area.",
+  ],
+  hiddenNote: "Mystery wire hidden. Its length, area and formula stay hidden until you inspect.",
+  question: "Can the meter alone tell you what changed?",
+  answers: [
+    { id: "length", text: "Yes — the length changed" },
+    { id: "area", text: "Yes — the area changed" },
+    { id: "need", text: "No — I need another observation" },
+  ],
+  reply: {
+    length: "A longer wire could explain a lower reading — that is a reasonable idea. But could anything else give the same reading? Inspect the wires to check.",
+    area: "A thinner wire could explain a lower reading — that is a reasonable idea. But could anything else give the same reading? Inspect the wires to check.",
+    need: "Good thinking. A longer wire and a thinner wire can both lower the current, so the meter alone cannot decide. Choose what to inspect.",
+  } as Record<string, string>,
+  inspectPrompt: "What do you want to inspect?",
+  inspect: { ruler: "Inspect the ruler", faces: "Inspect the end faces" },
+  rulerNote: "Both wires on the same ruler. Thickness is not shown in this view.",
+  facesNote: "Both end faces at the same scale. Length is not shown in this view.",
+  claimPrompt: "Your revised claim: what changed in the mystery wire?",
+  claims: [
+    { id: "length", text: "Its length changed" },
+    { id: "area", text: "Its cross-sectional area changed" },
+  ],
+  obsPrompt: "Which observation supports your claim?",
+  meterOnlyObs: "The mystery wire gives a lower reading than the original.",
+  sentencePrompt: "Say it in your own words (optional)",
+  feedback: {
+    needObs: "Pick one observation that supports your claim.",
+    meterOnly: "The reading alone fits both explanations — that was the puzzle. Pick something you inspected.",
+    wrongClaim: "Look at your evidence again. Does it show that property is different, or the same?",
+    right: "Your claim matches the evidence. Saved in your notebook.",
+  },
+  revealTitle: "Full reveal",
+  revealBody: "Both mysteries have R = 4.40 Ω, so both give 22.73 mA. Doubling L or halving A doubles R — the meter alone cannot tell them apart.",
+  tryOther: "Try the other mystery",
+  back: "Back to notebook records",
+};

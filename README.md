@@ -27,6 +27,7 @@ Optional AI: copy `.env.example` → `.env.local` and set `ANTHROPIC_API_KEY`. W
 | `src/components/Bench.tsx` | Live bench: stacked-fraction formula with scaling symbols, one illustrated wire (moving right clip, thickness and end face r ∝ √A, dashed reference outline), flow dots past a fixed marker (pause + reduced motion), one meter, three accessible sliders |
 | `src/components/Guided.tsx` | Five guided tasks + transfer + summary |
 | `src/components/FreeBench.tsx` | Lock / pin / compare |
+| `src/components/MysteryLab.tsx` | Optional Notebook activity “The Mystery Wire” (two authored cases in `MYSTERY_LAB`, content.ts) |
 | `src/components/Notebook.tsx` | Trial table, evidence selection, original vs revised explanations |
 | `src/components/WireLabApp.tsx` | Shell, tabs, autosave, Save & leave, New attempt, footer |
 | `scripts/verify-physics.ts` | Reference-case checks |
