@@ -52,6 +52,17 @@ export interface TaskState {
   workedShown: boolean;
   done: boolean;
   viewing?: "original" | "trial";
+  // Adaptive support (Tasks 1–2). Restored on refresh.
+  support?: number; // 0 none · 1 pointed to readings · 2 bars + simpler question
+  misses?: number; // wrong answers to the observation question
+  helpRequested?: boolean; // learner asked for help (never changes the branch)
+  simpleAnswer?: string | null;
+  simpleDone?: boolean;
+  plan?: string[]; // sound branch: properties the learner chose to keep the same
+  planOk?: boolean;
+  mismatch?: boolean; // prediction/reason differed from observation
+  freshAnswer?: Direction | null;
+  freshChecked?: boolean;
 }
 
 export type MysteryStage = "ask" | "inspect" | "claim" | "done";

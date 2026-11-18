@@ -41,7 +41,7 @@ export function FreeBench({ s, update }: { s: AppState; update: Updater }) {
                   disabled={!s.compareIds.includes(t.id) && s.compareIds.length >= 2}
                   onChange={() => update((d) => void (d.compareIds = d.compareIds.includes(t.id) ? d.compareIds.filter((x) => x !== t.id) : [...d.compareIds, t.id]))}
                 />
-                {describeTrial(t)}
+                {describeTrial(t, true)}
               </label>
               <button className="link" disabled={s.pinnedId === t.id} onClick={() => update((d) => void (d.pinnedId = t.id))}>
                 {s.pinnedId === t.id ? "Pinned" : "Pin"}

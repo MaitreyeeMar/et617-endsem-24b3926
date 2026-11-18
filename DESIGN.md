@@ -89,3 +89,14 @@ This activity sits outside the timed five-task sequence.
 - **Question:** "Can the meter alone tell you what changed?"
 - **Inspection:** the learner inspects the ruler or the end faces, each shown for both wires on one scale.
 - **Claim:** the learner makes a revised claim and picks one supporting observation, which are saved to the Notebook. A full reveal follows, then "Try the other mystery".
+
+## 12. Revision v5 — self-evaluation improvements
+- **Next action:** one primary action per step. "Choose an answer" becomes "Check my answer" once an answer is picked. Start Task 1 sits in the challenge panel. In single-variable tasks, Save trial sits beside the live meter, under the active slider.
+- **Language:** one short instruction per step, ordinary words for fixed values ("Same length and thickness"), and the first-use definition of cross-sectional area. Wires get names ("original wire", "longer wire") instead of REF or #n; the Notebook keeps the IDs. Numbers sit behind "See the calculation". Capped flow says "For fast flow, compare the meter readings."
+- **Learning loop (Tasks 1–2):** prediction and reason are saved first, then a controlled trial, the "Original wire | My trial" switch, and the observation question. If the observation differs from the prediction, the learner is asked "What would you change about your explanation?" (starter optional). Then come the explanation and one fresh prediction, revealed only after the learner answers. The fresh predictions replace the separate transfer screen, so there is no sixth mission.
+- **Adaptivity** draws on two signals: the reason given and the learner's actions.
+  - Sound reasoning: the learner plans which properties to hold fixed, then all sliders open.
+  - Misconception: the other properties stay locked.
+  - First miss: a pointer to the two saved readings.
+  - Second miss, or "I'd like more help": bars on one scale plus "Which bar is longer?", then back to the main question.
+  - Support state is saved per task. A help request never changes the branch.

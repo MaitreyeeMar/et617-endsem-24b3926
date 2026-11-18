@@ -10,9 +10,10 @@ export const CHALLENGE =
 
 export const BENCH_TEXT = {
   slidersTitle: "Adjust the wire",
-  referenceLabel: "Reference observation",
+  referenceLabel: "Original wire",
   locked: "Sliders unlock after you save your prediction",
-  saveHint: "Dragging is a live preview. Press Save trial to record a reading in your notebook.",
+  saveHint: "Dragging only previews. Save trial keeps a reading in your notebook.",
+  cappedFlow: "For fast flow, compare the meter readings.",
 };
 
 export const DIRECTION_LABEL: Record<Direction, string> = {
@@ -38,67 +39,91 @@ export const TASKS: Record<TaskId, { title: string; short: string }> = {
 // ── Task 1 & 2: predict → test → compare → revise ────────────
 export const PREDICT_TASKS = {
   length: {
-    question: "Only the length of the nichrome wire doubles: 1.00 m → 2.00 m. What happens to the current?",
+    question: "The wire gets twice as long: 1.00 m → 2.00 m. Material and thickness stay the same. What happens to the current?",
+    firstUse: null as string | null,
     correct: "decrease" as Direction,
     target: { material: "nichrome", length: 2.0, area: 0.5 } as WireSettings,
-    setupHint: "Drag the length slider to 2.00 m. Watch the meter and the dots, then press Save trial.",
-    independentHint: "All sliders are open. Set up a fair test yourself — change only what the question asks — then Save trial.",
+    setupHint: "Drag the length slider to 2.00 m. Then save your trial.",
+    planPrompt: "Good reason. Plan your own fair test: which properties will you keep the same?",
+    independentHint: "All sliders are open. Change only the length, to 2.00 m. Then save your trial.",
     chips: [
-      { id: "l-more", text: "A longer wire has more metal, so more current can flow.", kind: "length_misconception" },
+      { id: "l-more", text: "A longer wire carries more current, because it has more metal.", kind: "length_misconception" },
       { id: "l-path", text: "A longer wire is a longer path, so it has more resistance.", kind: "supported" },
       { id: "l-unsure", text: "I'm not sure yet.", kind: "unsure" },
     ] as ReasonChip[],
-    afterSave: {
-      length_misconception:
-        "Trial saved. You said a longer wire has more metal, so more current can flow. Test that idea: use the switch above the circuit to compare your trial with the original wire.",
-      area_misconception: "Trial saved. Use the switch above the circuit to compare your trial with the original wire.",
-      wrongDirection: "Trial saved. Does the meter agree with your prediction? Use the switch above the circuit to compare.",
-      unsure: "Trial saved. Use the switch above the circuit to compare your trial with the original wire.",
-      sound: "Trial saved. Use the switch above the circuit to compare your trial with the original wire.",
-    },
-    compareQuestion: "Which wire gave the higher reading? What stayed the same?",
-    evidenceQuestion: "Switch between the two views. Which one gives the higher reading and sends more dots past the marker?",
-    reveal:
-      "The 2.00 m wire gave a lower current. Double the length means double the resistance (2.20 Ω → 4.40 Ω), so the current halves (45.45 → 22.73 mA).",
-    revisePrompt: "Write your new claim. Use the two readings.",
-    reviseStarter: "When only the length doubled, the current ",
+    observedHigher: "reference" as "reference" | "test",
+    explain: "The longer wire carried less current. Twice the length means twice the resistance, so the current halves.",
+    calc: "Original: R = 1.10 × 1.00 / 0.50 = 2.20 Ω, I = 0.10 / 2.20 = 45.45 mA. Longer wire: R = 1.10 × 2.00 / 0.50 = 4.40 Ω, I = 0.10 / 4.40 = 22.73 mA.",
     clues: [
       "Watch how many dots pass the marker in each view.",
-      "More length is like a longer, narrow corridor. It is harder to get through.",
+      "A longer wire is like a longer, narrow corridor. It is harder to get through.",
     ],
+    fresh: {
+      text: "A new wire: copper, 0.50 m long. It becomes 1.50 m long. Thickness stays the same. What happens to the current?",
+      from: { material: "copper", length: 0.5, area: 1.0 } as WireSettings,
+      to: { material: "copper", length: 1.5, area: 1.0 } as WireSettings,
+    },
   },
   area: {
-    question: "Only the cross-sectional area doubles: 0.50 mm² → 1.00 mm². What happens to the current?",
+    question: "The wire gets thicker: its cross-sectional area doubles from 0.50 mm² to 1.00 mm². Material and length stay the same. What happens to the current?",
+    firstUse: "Cross-sectional area is the area of the wire's circular end." as string | null,
     correct: "increase" as Direction,
     target: { material: "nichrome", length: 1.0, area: 1.0 } as WireSettings,
-    setupHint: "Drag the area slider to 1.00 mm². Watch the end face grow and the dots speed up, then press Save trial.",
-    independentHint: "All sliders are open. Set up a fair test yourself — change only what the question asks — then Save trial.",
+    setupHint: "Drag the area slider to 1.00 mm². Then save your trial.",
+    planPrompt: "Good reason. Plan your own fair test: which properties will you keep the same?",
+    independentHint: "All sliders are open. Change only the area, to 1.00 mm². Then save your trial.",
     chips: [
-      { id: "a-block", text: "A thicker wire has more material in the way, so less current.", kind: "area_misconception" },
+      { id: "a-block", text: "A thicker wire makes it harder for current to pass, because more material is in the way.", kind: "area_misconception" },
       { id: "a-room", text: "A thicker wire gives more room for charge to flow, so less resistance.", kind: "supported" },
       { id: "a-unsure", text: "I'm not sure yet.", kind: "unsure" },
     ] as ReasonChip[],
-    afterSave: {
-      length_misconception: "Trial saved. Use the switch above the circuit to compare your trial with the original wire.",
-      area_misconception:
-        "Trial saved. You said a thicker wire puts more material in the way, so less current. Test that idea: use the switch above the circuit to compare your trial with the original wire.",
-      wrongDirection: "Trial saved. Does the meter agree with your prediction? Use the switch above the circuit to compare.",
-      unsure: "Trial saved. Use the switch above the circuit to compare your trial with the original wire.",
-      sound: "Trial saved. Use the switch above the circuit to compare your trial with the original wire.",
-    },
-    compareQuestion: "Which wire gave the higher reading? What stayed the same?",
-    evidenceQuestion: "Switch between the two views. Which one gives the higher reading and sends more dots past the marker?",
-    reveal:
-      "The thicker wire gave a higher current. The end-view circle has double the area, so there are twice as many paths side by side. Resistance halves (2.20 Ω → 1.10 Ω), current doubles (45.45 → 90.91 mA).",
-    revisePrompt: "Write your new claim. Use the two readings and the end faces.",
-    reviseStarter: "When only the area doubled, the current ",
+    observedHigher: "test" as "reference" | "test",
+    explain: "The thicker wire carried more current. Its circular end has twice the area, so charge has more room to flow. The resistance halves, so the current doubles.",
+    calc: "Original: R = 1.10 × 1.00 / 0.50 = 2.20 Ω, I = 45.45 mA. Thicker wire: R = 1.10 × 1.00 / 1.00 = 1.10 Ω, I = 0.10 / 1.10 = 90.91 mA.",
     clues: [
       "Watch how many dots pass the marker.",
-      "Compare the two end faces. The cross-sectional area is the size of the cut face.",
-      "A wider road lets more cars pass at once.",
+      "Compare the two circular ends. A wider road lets more cars pass at once.",
     ],
+    fresh: {
+      text: "A new wire: aluminium, 1.50 m long, area 0.25 mm². Its area becomes 0.75 mm². Length stays the same. What happens to the current?",
+      from: { material: "aluminium", length: 1.5, area: 0.25 } as WireSettings,
+      to: { material: "aluminium", length: 1.5, area: 0.75 } as WireSettings,
+    },
   },
 } as const;
+
+// Shared wording for the predict → test → observe → revise loop (Tasks 1 and 2).
+export const LOOP_TEXT = {
+  planLegend: "Keep the same:",
+  planWrongIncludesTested: (p: string) => `If you keep the ${p} the same, you cannot see what it does. Untick it.`,
+  planWrongMissing: "A fair test keeps everything else the same. Which other property should stay fixed?",
+  planOk: (keep: string, p: string) => `Good plan: keep ${keep} the same and change only the ${p}.`,
+  afterSave: "Trial saved. Now use the switch above the circuit to look at both wires.",
+  observeQuestion: "Which wire carried more current?",
+  observeOriginal: "The original wire carried more current",
+  observeTest: "My test wire carried more current",
+  chooseFirst: "Choose an answer",
+  check: "Check my answer",
+  moreHelp: "I'd like more help",
+  miss1: (a: string, b: string) => `Look at the two saved meter readings. Original wire: ${a} mA. My test wire: ${b} mA. Which number is bigger? Try again.`,
+  miss2: "Let's look at it another way.",
+  simpleQuestion: "Which bar is longer?",
+  simpleOriginal: "The original wire's bar",
+  simpleTest: "My test wire's bar",
+  simpleRight: "Yes. A longer bar means more current. Now answer the main question yourself.",
+  simpleWrong: "Look again: which bar reaches further to the right?",
+  observeRight: (who: string) => `Yes — ${who} carried more current.`,
+  reviseQuestion: "What would you change about your explanation?",
+  reviseStarter: "I thought ___. The meter showed ___. Now I think ___.",
+  useStarter: "Use a sentence starter (optional)",
+  saveRevision: "Save my explanation",
+  matched: "Your prediction matched what you saw.",
+  seeCalc: "See the calculation",
+  freshTitle: "New wire, new prediction",
+  freshCheck: "Check my prediction",
+  freshRight: "Correct.",
+  freshWrong: "Not this time.",
+};
 
 export const BRANCH_INTRO = {
   sound: "Good reasoning. Now test it yourself.",
@@ -114,7 +139,7 @@ export const FORMULA_REVEAL = {
 
 // ── Task 3: material ─────────────────────────────────────────
 export const MATERIAL_TASK = {
-  instruction: "The material slider is open. Slide to copper (same length and area as the reference), watch the meter, and Save trial.",
+  instruction: "Slide to copper. Watch the meter. Then save your trial.",
   selectPrompt: "Pick the two trials that best support a claim about material.",
   claimQuestion: "What do your two trials show?",
   claims: [
@@ -223,7 +248,7 @@ export const FOLLOW_UPS: Record<AiCategory, string> = {
   length_misconception:
     "Look at the two meters: the longer wire gave the lower reading. What does a longer path do to resistance?",
   area_misconception:
-    "Look at the end views: the bigger circle gave the higher reading. Does a wider wire make it harder or easier for charge to flow?",
+    "Look at the circular ends: the bigger one gave the higher reading. Does a thicker wire make it harder or easier for current to pass?",
   confounded_comparison:
     "Your two trials changed more than one thing. Which single property would you change to make a fair test?",
   unclear: "Try naming the property you changed and what the meter did. For example: “When ___ doubled, the current ___.”",

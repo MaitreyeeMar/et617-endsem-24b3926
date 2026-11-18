@@ -448,3 +448,49 @@ button, input, textarea { font: inherit; color: inherit; }
 .ml-r-title { text-transform: none; letter-spacing: 0; font-size: 0.78rem; }
 /* Phone: show the readings and known conditions before the question. */
 @media (max-width: 860px) { .ml-layout > .bench { order: -1; } }
+
+/* ── v5: clearer next action, point-of-need language, adaptive support ── */
+.start-btn { margin-top: 0.5rem; width: 100%; }
+.first-use { font-size: 0.9rem; background: var(--info-soft); border-left: 3px solid var(--accent); padding: 0.4rem 0.6rem; border-radius: 0 8px 8px 0; }
+.slider-hint { margin: 0.1rem 0 0; font-size: 0.8rem; color: var(--ink-2); }
+.step-text { margin: 0.35rem 0 0; font-weight: 650; color: var(--accent-ink); font-size: 0.92rem; }
+.inline-action .btn-primary { width: 100%; }
+.static-cmp { margin: 0; font-size: 0.85rem; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 0.45rem 0.65rem; }
+.loop-summary { display: grid; gap: 0.4rem; margin: 0.4rem 0; }
+.loop-summary > div { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 0.45rem 0.65rem; }
+.loop-summary p { margin: 0.1rem 0 0; font-size: 0.92rem; }
+.calc { font-size: 0.88rem; margin: 0.3rem 0; }
+.calc summary { cursor: pointer; color: var(--accent-ink); font-weight: 600; padding: 0.2rem 0; }
+.calc summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+.calc p { margin: 0.25rem 0 0; color: var(--ink-2); }
+.fl-calc { align-self: center; text-align: center; margin: 0; }
+.fl-calc .fl-values { justify-content: center; margin-top: 0.2rem; }
+.fresh { margin-top: 0.75rem; border-top: 1px solid var(--line); padding-top: 0.6rem; }
+.fresh h3 { margin-top: 0; }
+/* Brief highlight of the feature under test (3 pulses); static ring under reduced motion. */
+@keyframes hl-pulse { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 50% { box-shadow: 0 0 0 4px var(--accent-soft), 0 0 0 6px var(--accent); } }
+@keyframes hl-stroke { 0%, 100% { stroke: var(--line); stroke-width: 1; } 50% { stroke: var(--accent); stroke-width: 3; } }
+.hl { border-radius: 10px; animation: hl-pulse 1.1s ease-in-out 3; }
+.hl-svg { animation: hl-stroke 1.1s ease-in-out 3; }
+@media (prefers-reduced-motion: reduce) {
+  .hl { animation: none; box-shadow: 0 0 0 2px var(--accent); }
+  .hl-svg { animation: none; stroke: var(--accent); stroke-width: 2; }
+}
+/* Phone: during test/observe steps the circuit comes first, so slider, meter and Save trial sit together. */
+@media (max-width: 860px) {
+  .layout.bench-first > .bench { order: -1; }
+  .bench-focus .fl-calc .fl-values { font-size: 0.8rem; }
+  .inline-action .btn-primary { min-height: 46px; padding: 0.6rem 1rem; }
+}
+/* Save trial sits beside the live meter (single-variable tasks). */
+.meter-row { display: flex; gap: 0.5rem; align-items: stretch; }
+.meter-row .meter { flex: 1; min-width: 0; }
+.meter-row .inline-action { display: flex; }
+.meter-row .inline-action .btn-primary { width: auto; min-width: 7.5rem; height: 100%; }
+@media (max-width: 860px) {
+  .bench-focus .ref-strip .muted { display: none; }
+  .bench-focus .step-text { font-size: 0.86rem; }
+  .meter-row .inline-action .btn-primary { min-width: 6.4rem; padding: 0.5rem 0.6rem; font-size: 0.98rem; }
+}
+/* Vertical answer lists: cards size to their text (flex-basis applies to height in a column). */
+.choice-col .choice, .checks-col .choice { flex: 0 0 auto; }

@@ -8,6 +8,7 @@ import {
 import { BENCH_TEXT } from "@/config/content";
 import { currentsMatch, flowRate, fmtmA, fmtOhm, measure, type Property } from "@/lib/physics";
 import type { Trial } from "@/lib/state";
+import { trialName } from "@/lib/feedback";
 
 // ── Geometry (SVG units). Same length scale for the live wire and the reference ghost. ──
 const X0 = 48; // left clip
@@ -70,20 +71,24 @@ export function LiveFormula({ w }: { w: WireSettings }) {
           </span>
         </span>
       </div>
-      <div className="fl-values" aria-hidden="true">
-        <span className="fl-frac-sm">
-          <span>{rhoTxt} × {w.length.toFixed(2)}</span>
-          <span className="fl-bar-sm" />
-          <span>{w.area.toFixed(2)}</span>
-        </span>
-        <span>= <strong>{fmtOhm(resistance)} Ω</strong></span>
-      </div>
-      <p className="fl-note">Symbol size is only a cue. The meter shows the calculated value.</p>
+      <details className="calc fl-calc">
+        <summary>See the calculation</summary>
+        <div className="fl-values">
+          <span className="fl-frac-sm" aria-hidden="true">
+            <span>{rhoTxt} × {w.length.toFixed(2)}</span>
+            <span className="fl-bar-sm" />
+            <span>{w.area.toFixed(2)}</span>
+          </span>
+          <span aria-hidden="true">= <strong>{fmtOhm(resistance)} Ω</strong></span>
+          <span className="sr-only">R = {rhoTxt} × {w.length.toFixed(2)} ÷ {w.area.toFixed(2)} = {fmtOhm(resistance)} ohms. I = 0.10 V ÷ R.</span>
+        </div>
+        <p className="fl-note">I = V ÷ R = 0.10 V ÷ {fmtOhm(resistance)} Ω. Symbol size is only a cue; the meter shows the value.</p>
+      </details>
     </div>
   );
 }
 
-export function WireScene({ w, ghost, current, paused }: { w: WireSettings; ghost: WireSettings | null; current: number; paused: boolean }) {
+export function WireScene({ w, ghost, current, paused, highlight }: { w: WireSettings; ghost: WireSettings | null; current: number; paused: boolean; highlight?: boolean }) {
   const clipX = xFor(w.length);
   const thick = THICK_MAX * Math.sqrt(w.area);
   const faceR = FACE_R_MAX * Math.sqrt(w.area);
@@ -171,7 +176,7 @@ export function WireScene({ w, ghost, current, paused }: { w: WireSettings; ghos
       ))}
       {/* ruler */}
       <g aria-hidden="true">
-        <rect x={X0 - 6} y={92} width={SPAN + 12} height={20} rx={4} fill="var(--ruler)" stroke="var(--line)" />
+        <rect className={highlight ? "hl-svg" : undefined} x={X0 - 6} y={92} width={SPAN + 12} height={20} rx={4} fill="var(--ruler)" stroke="var(--line)" />
         {Array.from({ length: 41 }, (_, i) => i * 0.05).map((m) => (
           <line key={m} x1={xFor(m)} y1={92} x2={xFor(m)} y2={m % 0.5 < 0.001 || m % 0.5 > 0.499 ? 100 : 96} stroke="var(--ink-3)" strokeWidth={0.7} />
         ))}
@@ -181,32 +186,33 @@ export function WireScene({ w, ghost, current, paused }: { w: WireSettings; ghos
   );
 }
 
-export function EndFace({ area, refArea }: { area: number; refArea?: number }) {
+export function EndFace({ area, refArea, highlight }: { area: number; refArea?: number; highlight?: boolean }) {
   const r = FACE_R_MAX * Math.sqrt(area);
   const rr = refArea ? FACE_R_MAX * Math.sqrt(refArea) : 0;
   return (
-    <figure className="endface">
-      <svg viewBox="0 0 72 72" width={72} height={72} role="img" aria-label={`Enlarged end face, area ${area.toFixed(2)} square millimetres${refArea ? `, ${(area / refArea).toFixed(2)} times the reference` : ""}`}>
+    <figure className={`endface ${highlight ? "hl" : ""}`}>
+      <svg viewBox="0 0 72 72" width={72} height={72} role="img" aria-label={`Enlarged circular end of the wire, area ${area.toFixed(2)} square millimetres${refArea ? `, ${(area / refArea).toFixed(2)} times the original wire` : ""}`}>
         <circle cx={36} cy={36} r={r} fill="var(--accent-soft)" stroke="var(--accent)" strokeWidth={2} />
         {refArea && <circle cx={36} cy={36} r={rr} fill="none" stroke="var(--ink-3)" strokeDasharray="3 2" />}
       </svg>
-      <figcaption>End face<strong>{area.toFixed(2)} mm²</strong></figcaption>
+      <figcaption>Circular end<strong>{area.toFixed(2)} mm²</strong></figcaption>
     </figure>
   );
 }
 
-function Slider({ id, label, min, max, step, value, onInput, valueText, disabled, display, ticks, lockBox }: {
+function Slider({ id, label, min, max, step, value, onInput, valueText, disabled, display, ticks, lockBox, hint, highlight }: {
   id: string; label: string; min: number; max: number; step: number; value: number; onInput: (v: number) => void;
-  valueText: string; disabled: boolean; display: React.ReactNode; ticks?: string[]; lockBox?: React.ReactNode;
+  valueText: string; disabled: boolean; display: React.ReactNode; ticks?: string[]; lockBox?: React.ReactNode; hint?: string; highlight?: boolean;
 }) {
   return (
     <div className={`slider ${disabled ? "is-locked" : ""}`}>
       <div className="slider-head">
         <label htmlFor={id}>{label}</label>
-        <span className="slider-val">{display}</span>
+        <span className={`slider-val ${highlight ? "hl" : ""}`}>{display}</span>
       </div>
+      {hint && <p className="slider-hint" id={`${id}-hint`}>{hint}</p>}
       <input id={id} type="range" min={min} max={max} step={step} value={value} disabled={disabled}
-        aria-valuetext={valueText} onChange={(e) => onInput(Number(e.target.value))} />
+        aria-valuetext={valueText} aria-describedby={hint ? `${id}-hint` : undefined} onChange={(e) => onInput(Number(e.target.value))} />
       {ticks && <div className="slider-ticks" aria-hidden="true">{ticks.map((t) => <span key={t}>{t}</span>)}</div>}
       {lockBox}
     </div>
@@ -218,6 +224,8 @@ export interface CompareSpec {
   trial: Trial; // saved snapshot
   viewing: "original" | "trial";
   onSwitch: (v: "original" | "trial") => void;
+  /** Current bars on one scale (shown after the observation, or as extra help). */
+  showBars?: boolean;
 }
 
 export interface BenchProps {
@@ -234,13 +242,21 @@ export interface BenchProps {
   focus?: Property;
   /** "Original wire | My trial" view of two saved snapshots. Never touches the draft. */
   compare?: CompareSpec;
+  /** One short instruction shown beside the active slider. */
+  stepText?: string;
+  /** Primary action placed next to the active slider and meter (single-variable tasks). */
+  inlineAction?: React.ReactNode;
+  /** Briefly highlight the feature under test. */
+  highlight?: Property;
+  /** First-use plain-language explanation for the area slider. */
+  areaHint?: string;
 }
 
 function CurrentBars({ a, b, active }: { a: Trial; b: Trial; active: "original" | "trial" }) {
   const max = Math.max(a.current, b.current);
-  const rows: [string, Trial, "original" | "trial"][] = [["Original wire", a, "original"], ["My trial", b, "trial"]];
+  const rows: [string, Trial, "original" | "trial"][] = [["Original wire", a, "original"], ["My test wire", b, "trial"]];
   return (
-    <div className="bars" role="img" aria-label={`Current comparison: original wire ${fmtmA(a.current)} milliamps, my trial ${fmtmA(b.current)} milliamps.`}>
+    <div className="bars" role="img" aria-label={`Current bars on the same scale: original wire ${fmtmA(a.current)} milliamps, my test wire ${fmtmA(b.current)} milliamps.`}>
       {rows.map(([label, t, key]) => (
         <div key={key} className={`bar-row ${active === key ? "on" : ""}`} aria-hidden="true">
           <span className="bar-label">{label}</span>
@@ -255,7 +271,7 @@ function CurrentBars({ a, b, active }: { a: Trial; b: Trial; active: "original" 
 export { usePrefersReducedMotion, xFor, X0, SPAN, FACE_R_MAX, fmtRho };
 
 export function Bench(props: BenchProps) {
-  const { draft, onChange, unlocked, referenceTrial: ref, compare, focus } = props;
+  const { draft, onChange, unlocked, referenceTrial: ref, compare, focus, highlight } = props;
   const reduced = usePrefersReducedMotion();
   const [userPaused, setUserPaused] = useState<boolean | null>(null);
   const paused = userPaused ?? reduced;
@@ -278,36 +294,32 @@ export function Bench(props: BenchProps) {
         onInput={(v) => onChange("material", MATERIAL_IDS[v])} disabled={!isOpen("material")}
         valueText={`${MATERIALS[draft.material].label}, rho ${fmtRho(MATERIALS[draft.material].rho)} ohm square millimetre per metre`}
         display={<><strong>{MATERIALS[draft.material].label}</strong> · ρ = {fmtRho(MATERIALS[draft.material].rho)} Ω·mm²/m</>}
-        ticks={MATERIAL_IDS.map((x) => MATERIALS[x].label)} lockBox={lockBox("material")} />
+        ticks={MATERIAL_IDS.map((x) => MATERIALS[x].label)} lockBox={lockBox("material")} highlight={highlight === "material"} />
     ),
     length: (
       <Slider key="l" id="sl-length" label="Length (L)" {...LENGTH_RANGE} value={draft.length}
         onInput={(v) => onChange("length", v)} disabled={!isOpen("length")}
         valueText={`${draft.length.toFixed(2)} metres`} display={<strong>{draft.length.toFixed(2)} m</strong>}
-        ticks={["0.50", "1.00", "1.50", "2.00"]} lockBox={lockBox("length")} />
+        ticks={["0.50", "1.00", "1.50", "2.00"]} lockBox={lockBox("length")} highlight={highlight === "length"} />
     ),
     area: (
       <Slider key="a" id="sl-area" label="Cross-sectional area (A)" {...AREA_RANGE} value={draft.area}
         onInput={(v) => onChange("area", v)} disabled={!isOpen("area")}
         valueText={`${draft.area.toFixed(2)} square millimetres`} display={<strong>{draft.area.toFixed(2)} mm²</strong>}
-        ticks={["0.25", "0.50", "0.75", "1.00"]} lockBox={lockBox("area")} />
+        ticks={["0.25", "0.50", "0.75", "1.00"]} lockBox={lockBox("area")} highlight={highlight === "area"} hint={props.areaHint} />
     ),
   };
-  const fixedLine = focus
-    ? (["material", "length", "area"] as Property[])
-        .filter((p) => p !== focus)
-        .map((p) =>
-          p === "material"
-            ? `${MATERIALS[draft.material].label} (ρ ${fmtRho(MATERIALS[draft.material].rho)})`
-            : p === "length"
-              ? `L ${draft.length.toFixed(2)} m`
-              : `A ${draft.area.toFixed(2)} mm²`,
-        )
-        .join(" · ")
-    : "";
+  const fixedLine =
+    focus === "length"
+      ? `Same material (${MATERIALS[draft.material].label.toLowerCase()}) and thickness (${draft.area.toFixed(2)} mm²).`
+      : focus === "area"
+        ? `Same material (${MATERIALS[draft.material].label.toLowerCase()}) and length (${draft.length.toFixed(2)} m).`
+        : focus === "material"
+          ? `Same length and thickness (${draft.length.toFixed(2)} m, ${draft.area.toFixed(2)} mm²).`
+          : "";
 
   const meterHead = shownTrial
-    ? `Saved reading · ${compare!.viewing === "original" ? "Original wire" : "My trial"} (${shownTrial.label})`
+    ? `Saved reading · ${compare!.viewing === "original" ? "Original wire" : "My test wire"}`
     : "Current meter · live";
 
   return (
@@ -331,43 +343,52 @@ export function Bench(props: BenchProps) {
         )}
         <LiveFormula w={shown} />
         <div className="scene-row">
-          <WireScene w={shown} ghost={compare ? null : ref.settings} current={m.current} paused={paused} />
-          <EndFace area={shown.area} refArea={compare ? undefined : ref.settings.area} />
+          <WireScene w={shown} ghost={compare ? null : ref.settings} current={m.current} paused={paused} highlight={highlight === "length"} />
+          <EndFace area={shown.area} refArea={compare ? undefined : ref.settings.area} highlight={highlight === "area"} />
         </div>
         {focus && !compare && (
           <div className="focus-slider">
+            {props.stepText && <p className="step-text">{props.stepText}</p>}
             {sliders[focus]}
-            <p className="fixed-line"><span className="muted">Fixed:</span> {fixedLine}</p>
+            <p className="fixed-line">{fixedLine}</p>
           </div>
         )}
+        <div className={props.inlineAction ? "meter-row" : undefined}>
         <div className="meter" aria-live="polite" aria-atomic="true">
           <div className="meter-head">
             <span>{meterHead}</span>
             {!compare && (
               <span className="meter-cmp">
-                {currentsMatch(m.current, ref.current) ? "Same as reference" : `×${ratio.toFixed(2)} of reference`}
+                {currentsMatch(m.current, ref.current) ? "Same as original" : `×${ratio.toFixed(2)} of original`}
               </span>
             )}
           </div>
           <div className="meter-value" data-testid="meter">{fmtmA(m.current)}<span className="unit">mA</span></div>
           <div className="meter-sub">
-            {MATERIALS[shown.material].label}, {shown.length.toFixed(2)} m, {shown.area.toFixed(2)} mm² · R = {fmtOhm(m.resistance)} Ω
+            {MATERIALS[shown.material].label}, {shown.length.toFixed(2)} m, {shown.area.toFixed(2)} mm²
           </div>
+        </div>
+        {props.inlineAction && <div className="inline-action">{props.inlineAction}</div>}
         </div>
         <div className="flow-row">
           <span className="flow-text" data-rate={flow.rate.toFixed(4)}>
-            Flow cue: {flow.rate.toFixed(2)} dots/s past the marker{flow.capped ? ` (capped at ${FLOW_MAX_DOTS_PER_S} — real current is far higher)` : ""}{paused ? " · paused" : ""}
+            {flow.capped ? BENCH_TEXT.cappedFlow : `Flow cue: ${flow.rate.toFixed(2)} dots/s past the marker`}{paused ? " · paused" : ""}
           </span>
           <button className="btn btn-small" onClick={() => setUserPaused(!paused)} aria-pressed={paused}>
             {paused ? "▶ Play flow" : "❚❚ Pause flow"}
           </button>
         </div>
-        {compare && <CurrentBars a={compare.original} b={compare.trial} active={compare.viewing} />}
+        {compare && reduced && !compare.showBars && (
+          <p className="static-cmp" aria-label="Static comparison">
+            Static comparison — Original wire <strong className="mono">{fmtmA(compare.original.current)} mA</strong> · My test wire <strong className="mono">{fmtmA(compare.trial.current)} mA</strong>
+          </p>
+        )}
+        {compare && compare.showBars && <CurrentBars a={compare.original} b={compare.trial} active={compare.viewing} />}
       </section>
 
       {focus ? (
         <p className="muted small view-note">
-          {compare ? "Switching views shows your saved readings. Your slider stays where you left it." : props.lockedNote}
+          {compare ? "The switch only changes the view. It never answers for you." : props.inlineAction ? BENCH_TEXT.saveHint : props.lockedNote}
         </p>
       ) : (
         <section className="controls" aria-label="Wire sliders">
@@ -383,7 +404,7 @@ export function Bench(props: BenchProps) {
               <span className="muted small">Saved trials</span>
               <ul>
                 {props.savedTrials.slice(-4).map((t) => (
-                  <li key={t.id}><span className="mono">{t.label}</span> {MATERIALS[t.settings.material].label.slice(0, 2)} · {t.settings.length.toFixed(2)} m · {t.settings.area.toFixed(2)} mm² → <strong className="mono">{fmtmA(t.current)}</strong></li>
+                  <li key={t.id}>{trialName(t)} · {t.settings.length.toFixed(2)} m · {t.settings.area.toFixed(2)} mm² → <strong className="mono">{fmtmA(t.current)} mA</strong></li>
                 ))}
               </ul>
             </div>

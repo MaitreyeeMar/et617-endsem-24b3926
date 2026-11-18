@@ -100,10 +100,28 @@ Screenshots of the live app: **[FILL: opening screen]**, **[FILL: Task 1 misconc
 | Mystery Wire — no answer leak | **[VERIFIED]** before inspection the page (text and attributes) contains no mystery length, area, R or formula substitution; case ids are neutral (X/Y) and the case order is random |
 | Mystery Wire — branches | **[VERIFIED]** "I need another observation" → inspect; a length or area guess is acknowledged as possible and the learner is invited to inspect; the ruler and end-face views show both wires on one scale; a meter-only observation and a wrong claim are both refused; the correct claim plus observation is saved (Notebook "Mystery Wire claims" table, including revise attempts); "Try the other mystery" opens case 2 |
 | Mystery Wire — mobile, themes, resume | **[VERIFIED]** 360 px light and dark, no horizontal scroll (also fixed a notebook-table overflow); reload restored inspected evidence and stage; the Guided index was unaffected |
+| **v5 Path A** sound reasoning → independent test (production build, 360 px, light) | **[VERIFIED]** "down" + "longer path" opens a plan step ("which properties will you keep the same?"). Ticking Length was refused ("If you keep the length the same, you cannot see what it does"); Material + Area was accepted. All three sliders opened; the reading went 45.45 → 22.73 mA live; Save trial. The observation question "Which wire carried more current?" showed full answer labels, and the button read "Choose an answer" (disabled) until a choice, then "Check my answer". Switching to Original showed 45.45 mA with no answer selected or graded. Correct answer → "Your prediction matched what you saw" + explanation → fresh copper prediction answered before its result |
+| **v5 Path B** longer-wire misconception (360 px, dark) | **[VERIFIED]** prediction "up" + "A longer wire carries more current…" saved before any trial (branch = misconception, still 1 notebook trial). Only the length slider was shown ("Same material (nichrome) and thickness (0.50 mm²)."), ruler highlighted. While dragging, wire, slider, live meter and Save trial were all on one 740 px screen. Observation → "What would you change about your explanation?" → learner's own words (starter optional; blanks block saving) → explanation + built-in follow-up (supported_reasoning) → fresh prediction (answered wrong on purpose → "Not this time" + exact readings) |
+| **v5 Path C** thicker-wire misconception (360 px, light) | **[VERIFIED]** "down" + "A thicker wire makes it harder for current to pass…" → only the area slider shown, with the first-use line "Cross-sectional area is the area of the wire's circular end." and the circular end highlighted → 45.45 → 90.91 mA → observation → revision → fresh aluminium prediction correct |
+| **v5 Path D** repeated difficulty / requested help | **[VERIFIED]** 1st miss: "Look at the two saved meter readings. Original wire: 45.45 mA. My test wire: 90.91 mA…" (no bars). 2nd miss: bars on one scale + "Which bar is longer?"; a wrong bar answer is nudged; the right one returns to "Which wire carried more current?" with no answer preselected. Separately, "I'd like more help" with zero misses showed the same simpler prompt and left branch = misconception (a help request does not relabel the learner) |
+| **v5 Path E** refresh mid-task | **[VERIFIED]** refresh mid-drag restored area 0.75 mm², live 68.18 mA and the saved prediction; refresh at the support stage restored "Which bar is longer?", bars, support = 2, misses = 2, prediction and trial count |
+| v5 baselines in the normal flow | **[VERIFIED]** 45.45 mA (start), 22.73 mA (length 2.00 m), 90.91 mA (area 1.00 mm² alone) |
+| v5 reduced motion | **[VERIFIED]** dots start paused; observe step shows "Static comparison — Original wire 45.45 mA · My test wire 90.91 mA"; highlight animation off (static ring) |
+| v5 Notebook | **[VERIFIED]** one row shows the original prediction and reason, "45.45 → 22.73 mA (#1)", the revised explanation and the fresh prediction |
+| v5 layout | **[VERIFIED]** 360 px and 1280 px, light and dark, no horizontal scroll; identity footer present; Start Task 1 sits in the challenge panel above the locked sliders |
 | End view area doubles | **[VERIFIED]** radius 24.04 → 34 px, area ratio 2.000 |
 | Narrow mobile (375 px) | **[VERIFIED]** rigs stacked, no horizontal scroll, primary action fixed at bottom |
 | AI fallback | **[VERIFIED]** live endpoint returns `missing_key`; UI shows "Using built-in feedback" with a trial-specific prompt |
 | Live AI classification | **NOT TESTED** — no API key configured |
+
+### Not yet verified (v5)
+- **10-minute timing:** whether the five-task mission fits in 10 minutes with a real Class 10 learner. My scripted runs are not timing evidence.
+- **Live AI classification:** no API key is configured, so every follow-up above came from the built-in fallback.
+- **Screen readers:** no test with a real screen reader. Keyboard operation was exercised (arrow keys on sliders and the view switch, Enter on buttons).
+- **Older saved attempts:** an attempt saved before v5 resumes from its own stage and uses the "done"/"result" fallback. This was not separately exercised.
+- **Live app:** the evidence below is from the local production build; the live site is checked after deployment.
+
+**Captured evidence (local production build):** `docs/evidence/01`–`12` — opening; misconception path (prediction, controlled trial, observation, first miss, bars + simpler question, learner revision, fresh prediction); correct path (independent test, explanation); Notebook; desktop.
 
 ## D6 — Bounded AI feature
 See README "AI feature" for the call, prompt, schema and checks. In summary:

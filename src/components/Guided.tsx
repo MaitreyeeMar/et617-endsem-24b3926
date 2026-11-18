@@ -1,7 +1,7 @@
 "use client";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
-  BENCH_TEXT, BRANCH_INTRO, CHALLENGE, DIRECTION_LABEL, FAIR_TASK, FORMULA_REVEAL, MATERIAL_TASK, MYSTERY_TASK,
+  BENCH_TEXT, BRANCH_INTRO, CHALLENGE, LOOP_TEXT, DIRECTION_LABEL, FAIR_TASK, FORMULA_REVEAL, MATERIAL_TASK, MYSTERY_TASK,
   PREDICT_TASKS, TASKS, TASK_ORDER, TRANSFER, UI, BUILT_IN_NOTICE, type ReasonChip, type TaskId,
 } from "@/config/content";
 import { MATERIALS, REFERENCE_WIRE } from "@/config/physics";
@@ -10,12 +10,13 @@ import {
 } from "@/lib/physics";
 import { findTrial, makeTrial, newTaskState, reference, type AppState, type FeedbackMsg, type TaskState, type Trial } from "@/lib/state";
 import { resetDraft, saveTrial, setDraft, type Updater } from "@/lib/actions";
-import { branchFor, classifyReasonText, describeTrial, getExplanationFeedback, listProps } from "@/lib/feedback";
+import { branchFor, classifyReasonText, describeTrial, getExplanationFeedback, listProps, trialName } from "@/lib/feedback";
 import { Bench, type CompareSpec } from "./Bench";
 
 type P = { s: AppState; update: Updater };
 
 export function ActionBar({ children }: { children: ReactNode }) {
+  if (!children) return null;
   return <div className="actionbar">{children}</div>;
 }
 
@@ -115,15 +116,14 @@ function CompareCard({ a, b }: { a: Trial; b: Trial }) {
     <div className="compare" aria-label="Comparison of two trials">
       {[a, b].map((t) => (
         <div key={t.id} className={`cmp ${t.id === b.id ? "cmp-accent" : ""}`}>
-          <div className="cmp-label">{t.label}</div>
+          <div className="cmp-label">{trialName(t)}</div>
           <div className="cmp-val">{fmtmA(t.current)} <span>mA</span></div>
           <div className="cmp-set">{MATERIALS[t.settings.material].label} · {t.settings.length.toFixed(2)} m · {t.settings.area.toFixed(2)} mm²</div>
-          <div className="cmp-r">R = {fmtOhm(t.resistance)} Ω</div>
         </div>
       ))}
       <p className="cmp-text">
         Changed: <strong>{listProps(ch)}</strong>. Same: {listProps(same)}, voltage.
-        {!currentsMatch(a.current, b.current) ? ` Higher reading: ${hi.label}.` : " Both readings match."}
+        {!currentsMatch(a.current, b.current) ? ` More current: ${trialName(hi).toLowerCase()}.` : " Both readings match."}
       </p>
     </div>
   );
@@ -143,11 +143,24 @@ export function Guided({ s, update }: P) {
   const g = s.guided;
   const ref = reference(s);
   const [busy, setBusy] = useState(false);
+  const stageKey = !g.started ? "intro" : g.index < 5 ? `${g.index}-${g.tasks[TASK_ORDER[g.index]].stage}-${g.tasks[TASK_ORDER[g.index]].planOk ? 1 : 0}` : String(g.index);
+  useEffect(() => {
+    if (stageKey !== "intro") window.scrollTo({ top: 0 });
+  }, [stageKey]);
 
-  const benchFor = (unlocked: Property[], note?: string, saved: Trial[] = [], opts: { focus?: Property; compare?: CompareSpec } = {}) => (
+  const benchFor = (
+    unlocked: Property[],
+    note?: string,
+    saved: Trial[] = [],
+    opts: { focus?: Property; compare?: CompareSpec; stepText?: string; inlineAction?: ReactNode; highlight?: Property; areaHint?: string } = {},
+  ) => (
     <Bench
       focus={opts.focus}
       compare={opts.compare}
+      stepText={opts.stepText}
+      inlineAction={opts.inlineAction}
+      highlight={opts.highlight}
+      areaHint={opts.areaHint}
       draft={s.draft}
       referenceTrial={ref}
       referenceLabel={BENCH_TEXT.referenceLabel}
@@ -167,11 +180,9 @@ export function Guided({ s, update }: P) {
           <h1 className="challenge">{CHALLENGE}</h1>
           <p>The dashed outline is the reference wire: nichrome, 1.00 m, 0.50 mm². The solid wire is yours to change with the sliders. Both get the same 0.10 V.</p>
           <p className="muted">{UI.privacy} You can stop at any time — your place is saved.</p>
+          <button className="btn btn-primary start-btn" onClick={() => update((d) => void (d.guided.started = true))}>Start Task 1</button>
         </section>
         {benchFor([], "Sliders unlock in Task 1")}
-        <ActionBar>
-          <button className="btn btn-primary" onClick={() => update((d) => void (d.guided.started = true))}>Start Task 1</button>
-        </ActionBar>
       </div>
     );
   }
@@ -200,16 +211,26 @@ export function Guided({ s, update }: P) {
   let action: ReactNode = null;
   let unlocked: Property[] = [];
   let benchNote: string = BENCH_TEXT.locked;
+  let stepText: string | undefined;
+  let layoutBenchFirst = false;
+  let showBars = false;
 
-  // ── Tasks 1 & 2: predict → test → compare → revise ──
+  // ── Tasks 1 & 2: predict → (plan) → test → observe → [revise] → explain + fresh prediction ──
+  // Adapts on two signals: the saved prediction/reason (branch) and the learner's actions on this task
+  // (observation misses, help requests). A help request never changes the branch.
   if (id === "length" || id === "area") {
     const cfg = PREDICT_TASKS[id];
+    const T = LOOP_TEXT;
     const testTrial = findTrial(s, t.trialIds[t.trialIds.length - 1]);
+    const support = t.support ?? 0;
+    const others = (["material", "length", "area"] as Property[]).filter((p) => p !== id);
+    const propWord = (p: Property) => (p === "area" ? "area (thickness)" : p);
     if (t.stage === "predict") {
       const reasonText = t.reasonDraft.trim() || cfg.chips.find((c) => c.id === t.reasonChip)?.text || "";
       body = (
         <>
           <h2>{cfg.question}</h2>
+          {cfg.firstUse && <p className="first-use">{cfg.firstUse}</p>}
           <DirectionPicker name={`pred-${id}`} value={t.prediction} onChange={(v) => patch((tt) => void (tt.prediction = v))} />
           <ReasonPicker
             label="Why do you think so?"
@@ -229,7 +250,7 @@ export function Guided({ s, update }: P) {
             patch((tt) => {
               const chip = cfg.chips.find((c) => c.id === tt.reasonChip);
               const kind = tt.reasonDraft.trim() ? classifyReasonText(id, tt.reasonDraft) : chip?.kind ?? "unsure";
-              tt.savedReason = reasonText;
+              tt.savedReason = reasonText; // saved BEFORE the experiment
               tt.branch = branchFor(tt.prediction === cfg.correct, kind);
               tt.stage = "test";
               tt.feedback = { tone: "info", text: BRANCH_INTRO[tt.branch] };
@@ -239,14 +260,53 @@ export function Guided({ s, update }: P) {
           Save prediction
         </button>
       );
-    } else if (t.stage === "test") {
-      unlocked = t.branch === "sound" ? ["material", "length", "area"] : [id];
+    } else if (t.stage === "test" && t.branch === "sound" && !t.planOk) {
+      // Sound reasoning → independent fair test: the learner chooses what to hold fixed.
+      const plan = t.plan ?? [];
       body = (
         <>
-          <h2>{cfg.question}</h2>
-          <p className="saved-pred">Your prediction: <strong>{DIRECTION_LABEL[t.prediction!]}</strong> — “{t.savedReason}”</p>
+          <p className="saved-pred">You predicted: <strong>{DIRECTION_LABEL[t.prediction!]}</strong> — “{t.savedReason}”</p>
+          <h2>{cfg.planPrompt}</h2>
+          <fieldset className="checks">
+            <legend>{T.planLegend}</legend>
+            {(["material", "length", "area"] as Property[]).map((p) => (
+              <label key={p} className="check">
+                <input type="checkbox" checked={plan.includes(p)}
+                  onChange={() => patch((tt) => { const pl = tt.plan ?? []; tt.plan = pl.includes(p) ? pl.filter((x) => x !== p) : [...pl, p]; })} />
+                {p === "material" ? "Material" : p === "length" ? "Length" : "Area (thickness)"}
+              </label>
+            ))}
+          </fieldset>
           <Feedback f={t.feedback} />
-          <p className="instruction">{t.branch === "sound" ? cfg.independentHint : cfg.setupHint}</p>
+        </>
+      );
+      action = (
+        <button
+          className="btn btn-primary"
+          disabled={plan.length === 0}
+          onClick={() =>
+            patch((tt) => {
+              const pl = tt.plan ?? [];
+              if (pl.includes(id)) tt.feedback = { tone: "nudge", text: T.planWrongIncludesTested(propWord(id)) };
+              else if (!others.every((p) => pl.includes(p))) tt.feedback = { tone: "nudge", text: T.planWrongMissing };
+              else {
+                tt.planOk = true;
+                tt.feedback = { tone: "good", text: T.planOk(others.map(propWord).join(" and "), propWord(id)) };
+              }
+            })
+          }
+        >
+          Confirm my plan
+        </button>
+      );
+    } else if (t.stage === "test") {
+      unlocked = t.branch === "sound" ? ["material", "length", "area"] : [id];
+      stepText = t.branch === "sound" ? cfg.independentHint : cfg.setupHint;
+      body = (
+        <>
+          <p className="saved-pred">You predicted: <strong>{DIRECTION_LABEL[t.prediction!]}</strong> — “{t.savedReason}”</p>
+          <Feedback f={t.feedback} />
+          <p className="instruction">{stepText}</p>
         </>
       );
       action = (
@@ -259,26 +319,16 @@ export function Guided({ s, update }: P) {
               tt.trialIds.push(tr.id);
               const ch = changedProperties(REFERENCE_WIRE, tr.settings);
               if (sameSettings(tr.settings, cfg.target)) {
-                // No conclusion yet: point to the comparison switch; the observation question comes first.
-                const dir = direction(reference(d).current, tr.current);
-                const chip = cfg.chips.find((c) => c.id === tt.reasonChip);
-                const kind = tt.reasonDraft.trim() ? classifyReasonText(id, tt.reasonDraft) : chip?.kind ?? "unsure";
-                tt.feedback =
-                  tt.branch === "sound"
-                    ? { tone: "info", text: cfg.afterSave.sound }
-                    : kind === "length_misconception" || kind === "area_misconception"
-                      ? { tone: "nudge", text: cfg.afterSave[kind] }
-                      : dir !== tt.prediction
-                        ? { tone: "nudge", text: cfg.afterSave.wrongDirection }
-                        : { tone: "info", text: cfg.afterSave.unsure };
+                tt.feedback = { tone: "info", text: T.afterSave };
                 tt.stage = "compare";
                 tt.viewing = "trial";
+                tt.higher = null;
               } else if (!ch.includes(id)) {
-                tt.feedback = { tone: "nudge", text: `This trial did not change the ${id}. ${cfg.setupHint}` };
+                tt.feedback = { tone: "nudge", text: `This trial did not change the ${propWord(id)}. ${cfg.setupHint}` };
               } else if (ch.length > 1) {
-                tt.feedback = { tone: "nudge", text: `This trial also changed ${listProps(ch.filter((p) => p !== id))}. Change only the ${id}, so the test is fair.` };
+                tt.feedback = { tone: "nudge", text: `This trial also changed the ${listProps(ch.filter((p) => p !== id))}. Change only the ${propWord(id)}, so the test is fair.` };
               } else {
-                tt.feedback = { tone: "nudge", text: `Only the ${id} changed — good. This task asks you to double it. ${cfg.setupHint}` };
+                tt.feedback = { tone: "nudge", text: `Only the ${propWord(id)} changed — good. This task needs it doubled. ${cfg.setupHint}` };
               }
             })
           }
@@ -287,116 +337,167 @@ export function Guided({ s, update }: P) {
         </button>
       );
     } else if (t.stage === "compare" && testTrial) {
-      const full = t.branch === "misconception";
-      const fixed: Property[] = id === "length" ? ["material", "area"] : ["material", "length"];
+      layoutBenchFirst = true;
+      showBars = support >= 2;
+      const simple = support >= 2 && !t.simpleDone;
+      const a = fmtmA(ref.current), b = fmtmA(testTrial.current);
       body = (
         <>
-          <p className="saved-pred">Your prediction: <strong>{DIRECTION_LABEL[t.prediction!]}</strong></p>
+          <p className="saved-pred">You predicted: <strong>{DIRECTION_LABEL[t.prediction!]}</strong> — “{t.savedReason}”</p>
           <Feedback f={t.feedback} />
-          <h2>{full ? cfg.compareQuestion : cfg.evidenceQuestion}</h2>
-          <div className="choice-row" role="radiogroup" aria-label="Higher reading">
-            <label className={`choice ${t.higher === "reference" ? "on" : ""}`}>
-              <input type="radio" name={`hi-${id}`} checked={t.higher === "reference"} onChange={() => patch((tt) => void (tt.higher = "reference"))} />
-              <span>Original wire</span>
-            </label>
-            <label className={`choice ${t.higher === "test" ? "on" : ""}`}>
-              <input type="radio" name={`hi-${id}`} checked={t.higher === "test"} onChange={() => patch((tt) => void (tt.higher = "test"))} />
-              <span>My trial</span>
-            </label>
-          </div>
-          {full && (
-            <fieldset className="checks">
-              <legend>What stayed the same? (tick all)</legend>
-              {(["material", "length", "area", "voltage"] as const).map((p) => (
-                <label key={p} className="check">
-                  <input
-                    type="checkbox"
-                    checked={(t.same as string[]).includes(p)}
-                    onChange={() => patch((tt) => void (tt.same = (tt.same as string[]).includes(p) ? (tt.same as string[]).filter((x) => x !== p) : [...(tt.same as string[]), p]))}
-                  />
-                  {p === "voltage" ? "Voltage (0.10 V)" : p[0].toUpperCase() + p.slice(1)}
-                </label>
-              ))}
-            </fieldset>
+          {simple ? (
+            <>
+              <h2>{T.simpleQuestion}</h2>
+              <div className="choice-col" role="radiogroup" aria-label={T.simpleQuestion}>
+                {([["reference", T.simpleOriginal], ["test", T.simpleTest]] as const).map(([v, label]) => (
+                  <label key={v} className={`choice ${t.simpleAnswer === v ? "on" : ""}`}>
+                    <input type="radio" name={`simple-${id}`} checked={t.simpleAnswer === v} onChange={() => patch((tt) => void (tt.simpleAnswer = v))} />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <h2>{T.observeQuestion}</h2>
+              <div className="choice-col" role="radiogroup" aria-label={T.observeQuestion}>
+                {([["reference", T.observeOriginal], ["test", T.observeTest]] as const).map(([v, label]) => (
+                  <label key={v} className={`choice ${t.higher === v ? "on" : ""}`}>
+                    <input type="radio" name={`hi-${id}`} checked={t.higher === v} onChange={() => patch((tt) => void (tt.higher = v))} />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
+              {support < 2 && (
+                <button className="link" onClick={() => patch((tt) => { tt.helpRequested = true; tt.support = 2; tt.simpleDone = false; tt.simpleAnswer = null; tt.feedback = { tone: "info", text: T.miss2 }; })}>
+                  {T.moreHelp}
+                </button>
+              )}
+            </>
           )}
         </>
       );
-      action = (
+      action = simple ? (
+        <button
+          className="btn btn-primary"
+          disabled={!t.simpleAnswer}
+          onClick={() =>
+            patch((tt) => {
+              if (tt.simpleAnswer === cfg.observedHigher) {
+                tt.simpleDone = true;
+                tt.higher = null; // return to the original question, answered independently
+                tt.feedback = { tone: "good", text: T.simpleRight };
+              } else tt.feedback = { tone: "nudge", text: T.simpleWrong };
+            })
+          }
+        >
+          {t.simpleAnswer ? T.check : T.chooseFirst}
+        </button>
+      ) : (
         <button
           className="btn btn-primary"
           disabled={!t.higher}
           onClick={() =>
             update((d) => {
               const tt = d.guided.tasks[id];
-              const rightHigher = id === "length" ? "reference" : "test";
-              const sameOk = !full || (["voltage", ...fixed].every((p) => (tt.same as string[]).includes(p)) && !(tt.same as string[]).includes(id));
-              if (tt.higher !== rightHigher) {
-                tt.feedback = { tone: "nudge", text: "Switch between Original wire and My trial. Watch the meter number and count the dots passing the marker." };
-              } else if (!sameOk) {
-                tt.feedback = { tone: "nudge", text: `The higher reading is right. Now switch views and read the settings line under the meter: which ones match? Only the ${id} was changed.` };
-              } else {
-                tt.feedback = { tone: "good", text: (tt.branch === "sound" ? "Your prediction matched the meter. " : "") + cfg.reveal };
+              if (tt.higher === cfg.observedHigher) {
+                const observed = direction(reference(d).current, testTrial.current);
+                const chip = cfg.chips.find((c) => c.id === tt.reasonChip);
+                const kind = tt.reasonDraft.trim() ? classifyReasonText(id, tt.reasonDraft) : chip?.kind ?? "unsure";
+                tt.mismatch = tt.prediction !== observed || kind === "length_misconception" || kind === "area_misconception";
+                tt.feedback = { tone: "good", text: T.observeRight(cfg.observedHigher === "reference" ? "the original wire" : "your test wire") };
                 if (id === "length") d.guided.formulaRevealed = true;
-                tt.stage = full ? "revise" : "done";
-                if (full && !tt.revisedDraft) tt.revisedDraft = cfg.reviseStarter;
+                tt.stage = tt.mismatch ? "revise" : "fresh";
+              } else {
+                tt.misses = (tt.misses ?? 0) + 1;
+                tt.higher = null;
+                if (tt.misses === 1) {
+                  tt.support = Math.max(tt.support ?? 0, 1);
+                  tt.feedback = { tone: "nudge", text: T.miss1(a, b) };
+                } else {
+                  tt.support = 2;
+                  tt.simpleDone = false;
+                  tt.simpleAnswer = null;
+                  tt.feedback = { tone: "info", text: T.miss2 };
+                }
               }
             })
           }
         >
-          Compare trials
+          {t.higher ? T.check : T.chooseFirst}
         </button>
       );
     } else if (t.stage === "revise" && testTrial) {
+      showBars = true;
       body = (
         <>
-          <CompareCard a={ref} b={testTrial} />
           <Feedback f={t.feedback} />
-          <div className="pair">
-            <div><span className="muted">Your first idea</span><p>“{t.savedReason}”</p></div>
+          <div className="loop-summary">
+            <div><span className="muted">You predicted</span><p><strong>{DIRECTION_LABEL[t.prediction!]}</strong> — “{t.savedReason}”</p></div>
+            <div><span className="muted">The meter showed</span><p>Original wire <strong className="mono">{fmtmA(ref.current)} mA</strong> · My test wire <strong className="mono">{fmtmA(testTrial.current)} mA</strong></p></div>
           </div>
+          <h2>{T.reviseQuestion}</h2>
           <label className="field">
-            <span>{cfg.revisePrompt}</span>
-            <textarea rows={3} value={t.revisedDraft} onChange={(e) => patch((tt) => void (tt.revisedDraft = e.target.value))} />
+            <span className="sr-only">{T.reviseQuestion}</span>
+            <textarea rows={3} value={t.revisedDraft} onChange={(e) => patch((tt) => void (tt.revisedDraft = e.target.value))} placeholder="Write in your own words" />
           </label>
+          {!t.revisedDraft.trim() && (
+            <button className="link" onClick={() => patch((tt) => void (tt.revisedDraft = T.reviseStarter))}>{T.useStarter}: “{T.reviseStarter}”</button>
+          )}
         </>
       );
       action = (
         <button
           className="btn btn-primary"
-          disabled={busy || t.revisedDraft.trim().length < cfg.reviseStarter.length + 3}
+          disabled={busy || t.revisedDraft.replace(/_+/g, "").trim().length < 12 || t.revisedDraft.includes("___")}
           onClick={async () => {
             setBusy(true);
             const fb = await getExplanationFeedback(id, t.revisedDraft, [ref, testTrial]);
             setBusy(false);
             patch((tt) => {
-              tt.revisedClaim = tt.revisedDraft;
+              tt.revisedClaim = tt.revisedDraft.trim();
               tt.followUp = fb;
-              tt.stage = "done";
+              tt.stage = "fresh";
             });
           }}
         >
-          {busy ? "Checking…" : "Revise claim"}
+          {busy ? "Checking…" : T.saveRevision}
         </button>
       );
     } else {
-      // result (sound) / done
+      // fresh (and legacy "done"/"result"): explanation, then one fresh prediction before its result.
+      showBars = true;
+      const fr = cfg.fresh;
+      const actual = direction(measure(fr.from).current, measure(fr.to).current);
       body = (
         <>
-          {testTrial && <CompareCard a={ref} b={testTrial} />}
-          <Feedback f={t.stage === "result" ? { tone: "good", text: `Your prediction matched the meter. ${cfg.reveal}` } : t.feedback} />
+          <Feedback f={{ tone: "good", text: (t.mismatch ? "" : T.matched + " ") + cfg.explain }} />
+          <details className="calc"><summary>{T.seeCalc}</summary><p>{cfg.calc}</p></details>
           {t.revisedClaim && (
             <div className="pair">
-              <div><span className="muted">First idea</span><p>“{t.savedReason}”</p></div>
-              <div><span className="muted">Revised claim</span><p>“{t.revisedClaim}”</p></div>
+              <div><span className="muted">Your first idea</span><p>“{t.savedReason}”</p></div>
+              <div><span className="muted">Your revised explanation</span><p>“{t.revisedClaim}”</p></div>
             </div>
           )}
           <Feedback f={t.followUp} />
-          {t.revisedClaim && (
-            <button className="link" onClick={() => patch((tt) => void (tt.stage = "revise"))}>Edit my claim again</button>
-          )}
+          {t.revisedClaim && <button className="link" onClick={() => patch((tt) => void (tt.stage = "revise"))}>Edit my explanation</button>}
+          <div className="fresh">
+            <h3>{T.freshTitle}</h3>
+            <p>{fr.text}</p>
+            <DirectionPicker name={`fresh-${id}`} value={t.freshAnswer ?? null} onChange={(v) => !t.freshChecked && patch((tt) => void (tt.freshAnswer = v))} />
+            {t.freshChecked && (
+              <p className={`fb ${t.freshAnswer === actual ? "fb-good" : "fb-nudge"}`}>
+                {t.freshAnswer === actual ? T.freshRight : T.freshWrong} The meter would read {fmtmA(measure(fr.from).current)} mA → {fmtmA(measure(fr.to).current)} mA ({DIRECTION_LABEL[actual].toLowerCase()}).
+              </p>
+            )}
+          </div>
         </>
       );
-      action = <button className="btn btn-primary" onClick={next}>Next task →</button>;
+      action = !t.freshChecked ? (
+        <button className="btn btn-primary" disabled={!t.freshAnswer} onClick={() => patch((tt) => void (tt.freshChecked = true))}>{t.freshAnswer ? T.freshCheck : T.chooseFirst}</button>
+      ) : (
+        <button className="btn btn-primary" onClick={next}>Next task →</button>
+      );
     }
   }
 
@@ -405,10 +506,11 @@ export function Guided({ s, update }: P) {
     const pool = [ref, ...t.trialIds.map((x) => findTrial(s, x)).filter((x): x is Trial => !!x)];
     if (t.stage === "test") {
       unlocked = ["material"];
+      stepText = MATERIAL_TASK.instruction;
       body = (
         <>
           <h2>{MATERIAL_TASK.instruction}</h2>
-          <p className="muted">Your reference (Test A) already counts as a nichrome trial.</p>
+          <p className="muted">The original wire is already a nichrome trial. Same length and thickness.</p>
           <Feedback f={t.feedback} />
         </>
       );
@@ -424,11 +526,11 @@ export function Guided({ s, update }: P) {
               const fair = all.some((a) => a.settings.material === "copper" && all.some((b) => b.settings.material === "nichrome" && changedProperties(a.settings, b.settings).length === 1));
               if (fair) {
                 tt.stage = "select";
-                tt.feedback = { tone: "good", text: `${tr.label} measured ${fmtmA(tr.current)} mA. You now have a copper and a nichrome trial of the same size.` };
+                tt.feedback = { tone: "good", text: `The ${trialName(tr).toLowerCase()} reads ${fmtmA(tr.current)} mA. The original nichrome wire reads ${fmtmA(reference(d).current)} mA. Same length and thickness — a fair pair.` };
               } else {
                 tt.feedback = {
                   tone: "info",
-                  text: `${tr.label} measured ${fmtmA(tr.current)} mA (${MATERIALS[tr.settings.material].label}). ${tr.settings.material === "copper" ? "To compare fairly, make the copper wire the same length and area as a nichrome trial." : "Now try copper with the same length and area."}`,
+                  text: `This wire reads ${fmtmA(tr.current)} mA (${MATERIALS[tr.settings.material].label}). ${tr.settings.material === "copper" ? "Keep the same length and thickness as the original wire." : "Now slide to copper."}`,
                 };
               }
             })
@@ -682,14 +784,14 @@ export function Guided({ s, update }: P) {
                 return;
               }
               if (!wasStretched && tr.settings.length !== 2) {
-                tt.feedback = { tone: "info", text: `${tr.label} saved: ${fmtmA(tr.current)} mA. ${MYSTERY_TASK.stretchPrompt}` };
+                tt.feedback = { tone: "info", text: `Saved: ${fmtmA(tr.current)} mA. ${MYSTERY_TASK.stretchPrompt}` };
                 return;
               }
               tt.failCount += 1;
               tt.nextChoice = null;
               tr.note = "did not match";
               const level = tr.current < rf.current ? MYSTERY_TASK.tooLow : MYSTERY_TASK.tooHigh;
-              tt.feedback = { tone: "nudge", text: `${tr.label}: ${fmtmA(tr.current)} mA, reference ${fmtmA(rf.current)} mA. ${notes.length ? notes.join(" ") : level}` };
+              tt.feedback = { tone: "nudge", text: `Your wire: ${fmtmA(tr.current)} mA. Original wire: ${fmtmA(rf.current)} mA. ${notes.length ? notes.join(" ") : level}` };
             })
           }
         >
@@ -763,7 +865,7 @@ export function Guided({ s, update }: P) {
           {busy ? "Checking…" : t.revisedClaim ? "Revise claim" : "Check explanation"}
         </button>
       ) : (
-        <button className="btn btn-primary" onClick={next}>Two quick checks →</button>
+        <button className="btn btn-primary" onClick={() => update((d) => { d.guided.tasks.mystery.done = true; d.guided.index = 6; d.guided.finishedAt = Date.now(); })}>Finish →</button>
       );
     }
   }
@@ -775,11 +877,19 @@ export function Guided({ s, update }: P) {
   let compare: CompareSpec | undefined;
   if ((id === "length" || id === "area") && t.stage !== "predict" && t.stage !== "test") {
     const tr = findTrial(s, t.trialIds[t.trialIds.length - 1]);
-    if (tr) compare = { original: ref, trial: tr, viewing: t.viewing ?? "trial", onSwitch: (v) => patch((tt) => void (tt.viewing = v)) };
+    if (tr) compare = { original: ref, trial: tr, viewing: t.viewing ?? "trial", onSwitch: (v) => patch((tt) => void (tt.viewing = v)), showBars };
   }
+  // Single-variable test: "Save trial" sits beside the active slider and meter.
+  let inlineAction: ReactNode = null;
+  if (focus && unlocked.length === 1 && unlocked[0] === focus) {
+    inlineAction = action;
+    action = null;
+    layoutBenchFirst = true;
+  }
+  const highlight: Property | undefined = focus && unlocked.length === 1 ? focus : undefined;
 
   return (
-    <div className="layout">
+    <div className={`layout ${layoutBenchFirst ? "bench-first" : ""}`}>
       <section className="panel task" aria-labelledby="task-title">
         <Progress index={g.index} />
         <p className="eyebrow" id="task-title">{TASKS[id].title}</p>
@@ -788,7 +898,10 @@ export function Guided({ s, update }: P) {
         {g.formulaRevealed && id !== "length" && <Formula />}
         {g.formulaRevealed && id === "length" && t.stage !== "test" && <Formula />}
       </section>
-      {benchFor(unlocked, benchNote, t.trialIds.map((x) => findTrial(s, x)).filter((x): x is Trial => !!x), { focus, compare })}
+      {benchFor(unlocked, benchNote, t.trialIds.map((x) => findTrial(s, x)).filter((x): x is Trial => !!x), {
+        focus, compare, stepText, inlineAction, highlight,
+        areaHint: id === "area" ? PREDICT_TASKS.area.firstUse ?? undefined : undefined,
+      })}
       <ActionBar>{action}</ActionBar>
     </div>
   );
@@ -833,7 +946,13 @@ function Transfer({ s, update }: P) {
 
 function Finished({ s, update }: P) {
   const mins = Math.max(1, Math.round(s.activeMs / 60000));
-  const correct = TRANSFER.filter((q, i) => s.guided.transfer.answers[i] === direction(measure(q.from).current, measure(q.to).current)).length;
+  const freshOk = (["length", "area"] as const).filter((k) => {
+    const tk = s.guided.tasks[k];
+    const f = PREDICT_TASKS[k].fresh;
+    return tk.freshChecked && tk.freshAnswer === direction(measure(f.from).current, measure(f.to).current);
+  }).length;
+  const legacy = TRANSFER.filter((q, i) => s.guided.transfer.answers[i] === direction(measure(q.from).current, measure(q.to).current)).length;
+  const correct = s.guided.transfer.checked ? legacy : freshOk;
   const m = s.guided.tasks.mystery;
   return (
     <div className="layout">
@@ -841,7 +960,7 @@ function Finished({ s, update }: P) {
         <Progress index={6} />
         <h1 className="challenge">You kept the meter at 45.45 mA with a wire twice as long.</h1>
         <ul className="summary">
-          <li>Transfer predictions correct: <strong>{correct} of 2</strong></li>
+          <li>Fresh predictions correct: <strong>{correct} of 2</strong></li>
           <li>Mystery wire runs: <strong>{m.trialIds.length}</strong> ({m.failCount} did not match — all kept in your notebook)</li>
           <li>Time on this attempt: about <strong>{mins} min</strong></li>
         </ul>

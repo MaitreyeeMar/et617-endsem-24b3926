@@ -87,7 +87,7 @@ export function Notebook({ s, update }: { s: AppState; update: Updater }) {
         <div className="table-wrap">
           <table className="nb">
             <thead>
-              <tr><th scope="col">Task</th><th scope="col">Prediction</th><th scope="col">Original explanation</th><th scope="col">Revised explanation</th><th scope="col">Feedback</th></tr>
+              <tr><th scope="col">Task</th><th scope="col">Prediction</th><th scope="col">Original explanation</th><th scope="col">Readings (original → trial)</th><th scope="col">Revised explanation</th><th scope="col">Fresh prediction</th><th scope="col">Feedback</th></tr>
             </thead>
             <tbody>
               {TASK_ORDER.map((id) => {
@@ -98,13 +98,19 @@ export function Notebook({ s, update }: { s: AppState; update: Updater }) {
                     <td>{TASKS[id].short}</td>
                     <td>{t.prediction ? DIRECTION_LABEL[t.prediction] : "—"}</td>
                     <td>{t.savedReason ? `“${t.savedReason}”` : "—"}</td>
+                    <td className="num">{(() => {
+                      const last = findTrial(s, t.trialIds[t.trialIds.length - 1]);
+                      const ref = findTrial(s, "REF")!;
+                      return last ? `${fmtmA(ref.current)} → ${fmtmA(last.current)} mA (${last.label})` : "—";
+                    })()}</td>
                     <td>{t.revisedClaim ? `“${t.revisedClaim}”` : "—"}</td>
+                    <td>{t.freshChecked && t.freshAnswer ? DIRECTION_LABEL[t.freshAnswer] : "—"}</td>
                     <td className="small">{t.followUp ? `${t.followUp.source === "ai" ? "AI" : "Built-in"}: ${t.followUp.category ?? ""}` : "—"}</td>
                   </tr>
                 );
               })}
               {s.guided.transfer.checked && (
-                <tr><td>Transfer</td><td colSpan={4}>{s.guided.transfer.answers.map((a, i) => `Q${i + 1}: ${a ? DIRECTION_LABEL[a] : "—"}`).join(" · ")}</td></tr>
+                <tr><td>Transfer</td><td colSpan={6}>{s.guided.transfer.answers.map((a, i) => `Q${i + 1}: ${a ? DIRECTION_LABEL[a] : "—"}`).join(" · ")}</td></tr>
               )}
             </tbody>
           </table>
