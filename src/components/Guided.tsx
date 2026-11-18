@@ -1,7 +1,7 @@
 "use client";
 import { useState, type ReactNode } from "react";
 import {
-  BRANCH_INTRO, CHALLENGE, DIRECTION_LABEL, FAIR_TASK, FORMULA_REVEAL, MATERIAL_TASK, MYSTERY_TASK,
+  BENCH_TEXT, BRANCH_INTRO, CHALLENGE, DIRECTION_LABEL, FAIR_TASK, FORMULA_REVEAL, MATERIAL_TASK, MYSTERY_TASK,
   PREDICT_TASKS, TASKS, TASK_ORDER, TRANSFER, UI, BUILT_IN_NOTICE, type ReasonChip, type TaskId,
 } from "@/config/content";
 import { MATERIALS, REFERENCE_WIRE } from "@/config/physics";
@@ -9,7 +9,7 @@ import {
   changedProperties, currentsMatch, direction, fmtmA, fmtOhm, measure, sameSettings, type Direction, type Property,
 } from "@/lib/physics";
 import { findTrial, makeTrial, newTaskState, reference, type AppState, type FeedbackMsg, type TaskState, type Trial } from "@/lib/state";
-import { resetDraft, runTest, setDraft, type Updater } from "@/lib/actions";
+import { resetDraft, saveTrial, setDraft, type Updater } from "@/lib/actions";
 import { branchFor, classifyReasonText, describeTrial, getExplanationFeedback, listProps } from "@/lib/feedback";
 import { Bench } from "./Bench";
 
@@ -142,18 +142,17 @@ function Formula() {
 export function Guided({ s, update }: P) {
   const g = s.guided;
   const ref = reference(s);
-  const lastTrial = findTrial(s, s.lastTrialId);
   const [busy, setBusy] = useState(false);
 
-  const benchFor = (enabled: boolean, note?: string, refTrial: Trial = ref) => (
+  const benchFor = (unlocked: Property[], note?: string, saved: Trial[] = []) => (
     <Bench
       draft={s.draft}
-      lastTested={s.lastTested}
-      lastTrial={lastTrial}
-      referenceTrial={refTrial}
+      referenceTrial={ref}
+      referenceLabel={BENCH_TEXT.referenceLabel}
       onChange={(p, v) => update((d) => setDraft(d, p, v))}
-      controlsDisabled={!enabled}
-      disabledNote={note}
+      unlocked={unlocked}
+      lockedNote={unlocked.length === 0 ? note : BENCH_TEXT.saveHint}
+      savedTrials={saved}
     />
   );
 
@@ -167,7 +166,7 @@ export function Guided({ s, update }: P) {
           <p>You have two tests side by side. Test A is a fixed reference wire. Test B is your wire to adjust. Both get the same 0.10 V.</p>
           <p className="muted">{UI.privacy} You can stop at any time — your place is saved.</p>
         </section>
-        {benchFor(false, "Unlocks in Task 1")}
+        {benchFor([], "Sliders unlock in Task 1")}
         <ActionBar>
           <button className="btn btn-primary" onClick={() => update((d) => void (d.guided.started = true))}>Start Task 1</button>
         </ActionBar>
@@ -189,8 +188,7 @@ export function Guided({ s, update }: P) {
       if (nid === "fair" && !d.trials.some((x) => x.id === "G1")) {
         FAIR_TASK.given.forEach((gv, i) => d.trials.push(makeTrial(gv.id, gv.id, -1 - i, gv.settings, "given")));
       }
-      if (nid === "mystery") resetDraft(d, { material: "nichrome", length: 2.0, area: 0.5 });
-      else if (nid) resetDraft(d, REFERENCE_WIRE);
+      if (nid) resetDraft(d, REFERENCE_WIRE);
     });
   const clues =
     id === "length" || id === "area" ? PREDICT_TASKS[id].clues : id === "material" ? MATERIAL_TASK.clues : id === "mystery" ? MYSTERY_TASK.clues : [];
@@ -198,8 +196,8 @@ export function Guided({ s, update }: P) {
 
   let body: ReactNode = null;
   let action: ReactNode = null;
-  let benchEnabled = false;
-  let benchNote = "Controls unlock after you save your prediction";
+  let unlocked: Property[] = [];
+  let benchNote: string = BENCH_TEXT.locked;
 
   // ── Tasks 1 & 2: predict → test → compare → revise ──
   if (id === "length" || id === "area") {
@@ -240,7 +238,7 @@ export function Guided({ s, update }: P) {
         </button>
       );
     } else if (t.stage === "test") {
-      benchEnabled = true;
+      unlocked = t.branch === "sound" ? ["material", "length", "area"] : [id];
       body = (
         <>
           <h2>{cfg.question}</h2>
@@ -255,15 +253,22 @@ export function Guided({ s, update }: P) {
           onClick={() =>
             update((d) => {
               const tt = d.guided.tasks[id];
-              const tr = runTest(d, id);
+              const tr = saveTrial(d, id);
               tt.trialIds.push(tr.id);
               const ch = changedProperties(REFERENCE_WIRE, tr.settings);
               if (sameSettings(tr.settings, cfg.target)) {
                 const dir = direction(reference(d).current, tr.current);
-                tt.feedback = {
-                  tone: dir === tt.prediction ? "good" : "info",
-                  text: `The reading went ${dir === "decrease" ? "down" : "up"}: ${fmtmA(reference(d).current)} mA → ${fmtmA(tr.current)} mA. Both readings stay on screen.`,
-                };
+                const chip = cfg.chips.find((c) => c.id === tt.reasonChip);
+                const kind = tt.reasonDraft.trim() ? classifyReasonText(id, tt.reasonDraft) : chip?.kind ?? "unsure";
+                const a = fmtmA(reference(d).current), b = fmtmA(tr.current);
+                tt.feedback =
+                  dir === tt.prediction && tt.branch === "sound"
+                    ? { tone: "good", text: `Saved: ${a} mA → ${b} mA.` }
+                    : kind === "length_misconception" || kind === "area_misconception"
+                      ? { tone: "nudge", text: cfg.afterSave[kind](a, b) }
+                      : dir !== tt.prediction
+                        ? { tone: "nudge", text: cfg.afterSave.wrongDirection(a, b) }
+                        : { tone: "info", text: cfg.afterSave.unsure(a, b) };
                 tt.stage = tt.branch === "sound" ? "result" : "compare";
                 if (tt.branch === "sound" && id === "length") d.guided.formulaRevealed = true;
               } else if (!ch.includes(id)) {
@@ -276,7 +281,7 @@ export function Guided({ s, update }: P) {
             })
           }
         >
-          Test wire
+          Save trial
         </button>
       );
     } else if (t.stage === "compare" && testTrial) {
@@ -397,7 +402,7 @@ export function Guided({ s, update }: P) {
   if (id === "material") {
     const pool = [ref, ...t.trialIds.map((x) => findTrial(s, x)).filter((x): x is Trial => !!x)];
     if (t.stage === "test") {
-      benchEnabled = true;
+      unlocked = ["material"];
       body = (
         <>
           <h2>{MATERIAL_TASK.instruction}</h2>
@@ -411,7 +416,7 @@ export function Guided({ s, update }: P) {
           onClick={() =>
             update((d) => {
               const tt = d.guided.tasks.material;
-              const tr = runTest(d, "material");
+              const tr = saveTrial(d, "material");
               tt.trialIds.push(tr.id);
               const all = [reference(d), ...tt.trialIds.map((x) => findTrial(d, x)!)];
               const fair = all.some((a) => a.settings.material === "copper" && all.some((b) => b.settings.material === "nichrome" && changedProperties(a.settings, b.settings).length === 1));
@@ -427,7 +432,7 @@ export function Guided({ s, update }: P) {
             })
           }
         >
-          Test wire
+          Save trial
         </button>
       );
     } else if (t.stage === "select") {
@@ -544,7 +549,7 @@ export function Guided({ s, update }: P) {
               else {
                 tt.feedback = { tone: "good", text: FAIR_TASK.feedback.right };
                 tt.stage = "repair";
-                resetDraft(d, g1.settings);
+                resetDraft(d, g2.settings);
               }
             })
           }
@@ -553,7 +558,7 @@ export function Guided({ s, update }: P) {
         </button>
       );
     } else {
-      benchEnabled = t.stage === "repair";
+      unlocked = t.stage === "repair" ? ["material", "length"] : [];
       const last = findTrial(s, t.trialIds[t.trialIds.length - 1]);
       body = (
         <>
@@ -572,7 +577,7 @@ export function Guided({ s, update }: P) {
             onClick={() =>
               update((d) => {
                 const tt = d.guided.tasks.fair;
-                const tr = runTest(d, "fair");
+                const tr = saveTrial(d, "fair");
                 tt.trialIds.push(tr.id);
                 const ch = changedProperties(g1.settings, tr.settings);
                 if (ch.length === 1 && ch[0] === "length") {
@@ -583,7 +588,7 @@ export function Guided({ s, update }: P) {
               })
             }
           >
-            Test wire
+            Save trial
           </button>
         );
     }
@@ -616,12 +621,14 @@ export function Guided({ s, update }: P) {
       );
       const txt = t.reasonDraft.trim() || MYSTERY_TASK.chips.find((c) => c.id === t.reasonChip)?.text || "";
       action = (
-        <button className="btn btn-primary" disabled={!txt} onClick={() => patch((tt) => { tt.savedReason = txt; tt.stage = "test"; tt.feedback = { tone: "info", text: "Hypothesis saved. Your test wire is already 2.00 m nichrome. Test it, then adjust." }; })}>
+        <button className="btn btn-primary" disabled={!txt} onClick={() => patch((tt) => { tt.savedReason = txt; tt.stage = "test"; tt.feedback = { tone: "info", text: MYSTERY_TASK.stretchPrompt }; })}>
           Save prediction
         </button>
       );
     } else if (t.stage === "test") {
-      benchEnabled = true;
+      const stretched = mine.some((x) => x.settings.length === 2);
+      unlocked = !stretched ? ["length"] : (t.changed as Property[]);
+      benchNote = stretched ? "Length is fixed at 2.00 m. Choose a property to unlock its slider." : BENCH_TEXT.locked;
       const failed = mine.filter((x) => !isMatch(x));
       body = (
         <>
@@ -633,7 +640,7 @@ export function Guided({ s, update }: P) {
               <h3>{MYSTERY_TASK.failQuestion}</h3>
               <div className="choice-row">
                 {MYSTERY_TASK.nextChoices.map((c) => (
-                  <button key={c.id} className={`chip ${t.nextChoice === c.id ? "on" : ""}`} aria-pressed={t.nextChoice === c.id} onClick={() => patch((tt) => void (tt.nextChoice = c.id))}>
+                  <button key={c.id} className={`chip ${t.nextChoice === c.id ? "on" : ""}`} aria-pressed={t.nextChoice === c.id} onClick={() => patch((tt) => { tt.nextChoice = c.id; if (c.id !== "length" && !tt.changed.includes(c.id)) tt.changed.push(c.id); })}>
                     {c.text}
                   </button>
                 ))}
@@ -659,7 +666,8 @@ export function Guided({ s, update }: P) {
           onClick={() =>
             update((d) => {
               const tt = d.guided.tasks.mystery;
-              const tr = runTest(d, "mystery");
+              const wasStretched = tt.trialIds.some((x) => findTrial(d, x)?.settings.length === 2);
+              const tr = saveTrial(d, "mystery");
               tt.trialIds.push(tr.id);
               const rf = reference(d);
               const notes: string[] = [];
@@ -671,6 +679,10 @@ export function Guided({ s, update }: P) {
                 tt.evidenceIds = ["REF", tr.id];
                 return;
               }
+              if (!wasStretched && tr.settings.length !== 2) {
+                tt.feedback = { tone: "info", text: `${tr.label} saved: ${fmtmA(tr.current)} mA. ${MYSTERY_TASK.stretchPrompt}` };
+                return;
+              }
               tt.failCount += 1;
               tt.nextChoice = null;
               tr.note = "did not match";
@@ -679,7 +691,7 @@ export function Guided({ s, update }: P) {
             })
           }
         >
-          Test wire
+          Save trial
         </button>
       );
     } else if (t.stage === "evidence") {
@@ -764,7 +776,7 @@ export function Guided({ s, update }: P) {
         {g.formulaRevealed && id !== "length" && <Formula />}
         {g.formulaRevealed && id === "length" && t.stage !== "test" && <Formula />}
       </section>
-      {benchFor(benchEnabled, benchNote, ref)}
+      {benchFor(unlocked, benchNote, t.trialIds.map((x) => findTrial(s, x)).filter((x): x is Trial => !!x))}
       <ActionBar>{action}</ActionBar>
     </div>
   );

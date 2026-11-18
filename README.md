@@ -16,15 +16,15 @@ Optional AI: copy `.env.example` → `.env.local` and set `ANTHROPIC_API_KEY`. W
 ## File map (edit these during the viva)
 | File | What it holds |
 |---|---|
-| `src/config/physics.ts` | **Physics constants**: V = 0.10 V, ρ values, allowed L/A settings, reference wire, match tolerance, assumptions |
+| `src/config/physics.ts` | **Physics constants**: V = 0.10 V, ρ values, slider ranges (L 0.50–2.00 m, A 0.25–1.00 mm², step 0.05), reference wire, match tolerance, flow-cue rate (1.5 dots/s at 45.45 mA, proportional, capped at 12), assumptions |
 | `src/config/content.ts` | **All activity wording + feedback rules**: challenge, task questions, reason chips, branch messages, compare questions, mystery prompts, worked answer, transfer items, AI category → follow-up map |
 | `src/config/identity.ts` | Roll number + app name (footer and About) |
 | `src/lib/physics.ts` | The one simulation engine: `R = ρL/A`, `I = V/R`, unrounded match check, changed-property detection |
 | `src/lib/state.ts` | App state shape, localStorage save/load (`wirelab-24B3926-v1`) |
-| `src/lib/actions.ts` | Draft edits and `runTest` (Test wire → logged trial) |
+| `src/lib/actions.ts` | `setDraft` (live slider preview, never logged) and `saveTrial` (Save trial → one notebook entry) |
 | `src/lib/feedback.ts` | Built-in reason classifier, prediction branching, trial-specific fallback prompts, client call to AI with fallback |
 | `src/app/api/classify/route.ts` | Server AI endpoint: prompt, schema, validation and cross-checks |
-| `src/components/Bench.tsx` | Two rigs (ruler, end view with r ∝ √A, meter), controls, "Ready to test" logic |
+| `src/components/Bench.tsx` | Live bench: stacked-fraction formula with scaling symbols, one illustrated wire (moving right clip, thickness and end face r ∝ √A, dashed reference outline), flow dots past a fixed marker (pause + reduced motion), one meter, three accessible sliders |
 | `src/components/Guided.tsx` | Five guided tasks + transfer + summary |
 | `src/components/FreeBench.tsx` | Lock / pin / compare |
 | `src/components/Notebook.tsx` | Trial table, evidence selection, original vs revised explanations |

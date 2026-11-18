@@ -60,8 +60,15 @@ About        roll number, assumptions, model, data note
 Every screen: footer "WireLab · ET617 · Roll no. 24B3926", Save & leave, New attempt
 ```
 - **Model:** V = 0.10 V; ρ: Cu 0.017, Al 0.028, NiCr 1.10 Ω·mm²/m; L ∈ {0.5, 1, 1.5, 2} m; A ∈ {0.25, 0.5, 0.75, 1} mm².
-- **Visual scaling:** end-view radius ∝ √A; one length scale across both rigs.
-- **Readings:** draft settings are kept separate from the last tested reading, which stays labelled "Last reading (#n)" with a "Ready to test" badge until **Test wire** is pressed.
+- **Live workbench (v2):** R = ρL/A as a stacked fraction above one large illustrated wire. Each symbol grows or shrinks with its slider within a modest range, and R grows with the calculated resistance. The formula's space is reserved, so it never moves.
+- **Three keyboard-operable sliders:**
+  - material/ρ, with stops for copper, aluminium and nichrome, showing the actual ρ;
+  - L from 0.50 to 2.00 m in steps of 0.05, which moves the right clip;
+  - A from 0.25 to 1.00 mm² in steps of 0.05; wire thickness and the end face scale with √A.
+- **Meter and flow cue:** one live meter. Dots cross a fixed marker on the circuit lead at a rate proportional to current (1.5 dots/s at 45.45 mA), capped and labelled for the very large copper and aluminium currents. A pause button is provided, and the cue is paused by default under reduced-motion settings.
+- **Reference:** a dashed outline of the reference wire stays visible on top of the live wire.
+- **Saving:** dragging is a live preview only. **Save trial** records one notebook entry.
+- **Guided unlocking:** each task unlocks only the relevant slider after the prediction is saved. In the final challenge the learner first stretches the wire to 2.00 m, then chooses which property's slider to unlock to restore the current.
 
 Screenshots of the live app: **[FILL: opening screen]**, **[FILL: Task 1 misconception compare]**, **[FILL: mystery failed run + "Which property could you test next?"]**, **[FILL: notebook]**, **[FILL: phone layout]**
 
@@ -78,7 +85,13 @@ Screenshots of the live app: **[FILL: opening screen]**, **[FILL: Task 1 misconc
 | Material task | **[VERIFIED]** unequal copper trial rejected; confounded pair rejected ("differ in length"); Cu vs NiCr same size accepted; wrong claim nudged |
 | Fair-test task | **[VERIFIED]** "Yes" nudged; a repair that also changed material rejected; length-only repair accepted (45.45 → 30.30 mA) |
 | Mystery failed run | **[VERIFIED]** 22.73 mA "too low" + "Keep your new length. Which property could you test next?"; failed runs listed; worked answer only after 2 fails + a choice; area 1.00 mm² matches |
-| Refresh after changing the wire, before Test | **[VERIFIED]** draft (area 1.00) restored; previous reading 22.73 mA restored as "Last reading (#1)" with "Ready to test"; saved prediction restored |
+| Refresh after changing the wire, before Test (v1) | **[VERIFIED]** draft (area 1.00) restored; previous reading 22.73 mA restored as "Last reading (#1)" with "Ready to test"; saved prediction restored |
+| v2 live sliders: NiCr 1.00 m / 0.50 mm² | **[VERIFIED]** 45.45 mA, flow 1.50 dots/s |
+| v2 slide L → 2.00 m (20 keyboard steps) | **[VERIFIED]** 22.73 mA live; flow 0.75 dots/s (measured 0.75 crossings/s on screen); notebook still held only REF (no entries from dragging) |
+| v2 slide A → 1.00 mm² (final challenge) | **[VERIFIED]** back to 45.45 mA, "Same as reference", flow 1.50 dots/s; longer, thicker wire shown over the dashed reference outline |
+| v2 formula stability | **[VERIFIED]** fraction bar did not move while symbols rescaled |
+| v2 resume | **[VERIFIED]** refresh restored slider positions (L 2.00, A 1.00), unlocked sliders and live reading |
+| v2 misconception feedback after Save trial | **[VERIFIED]** length ("…because it has more metal… lower… half the rate") and area ("…more material is in the way… higher… twice as fast") |
 | End view area doubles | **[VERIFIED]** radius 24.04 → 34 px, area ratio 2.000 |
 | Narrow mobile (375 px) | **[VERIFIED]** rigs stacked, no horizontal scroll, primary action fixed at bottom |
 | AI fallback | **[VERIFIED]** live endpoint returns `missing_key`; UI shows "Using built-in feedback" with a trial-specific prompt |

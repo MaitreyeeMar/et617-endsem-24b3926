@@ -1,5 +1,8 @@
 // The ONE simulation engine. Every mode calls these functions.
-import { MATERIALS, VOLTAGE_V, MATCH_TOLERANCE, type WireSettings } from "../config/physics.ts";
+import {
+  MATERIALS, VOLTAGE_V, MATCH_TOLERANCE, REFERENCE_WIRE, FLOW_DOTS_PER_S_AT_REFERENCE, FLOW_MAX_DOTS_PER_S,
+  type WireSettings,
+} from "../config/physics.ts";
 
 export type Property = "material" | "length" | "area";
 export const PROPERTIES: Property[] = ["material", "length", "area"];
@@ -12,6 +15,14 @@ export function resistanceOhm(w: WireSettings): number {
 /** I = V / R, returned in mA (unrounded). */
 export function currentmA(w: WireSettings): number {
   return (VOLTAGE_V / resistanceOhm(w)) * 1000;
+}
+
+const REF_CURRENT = currentmA(REFERENCE_WIRE);
+
+/** Dots per second crossing the marker; proportional to current, capped for very large currents. */
+export function flowRate(current_mA: number): { rate: number; capped: boolean } {
+  const raw = (current_mA / REF_CURRENT) * FLOW_DOTS_PER_S_AT_REFERENCE;
+  return raw > FLOW_MAX_DOTS_PER_S ? { rate: FLOW_MAX_DOTS_PER_S, capped: true } : { rate: raw, capped: false };
 }
 
 export function measure(w: WireSettings) {

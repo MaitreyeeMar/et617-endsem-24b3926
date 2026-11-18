@@ -4,7 +4,7 @@
 // Any failure returns { ok:false, reason } and the client uses built-in feedback.
 import Anthropic from "@anthropic-ai/sdk";
 import { AI_CATEGORIES, FOLLOW_UPS, TASK_ORDER, type AiCategory, type TaskId } from "@/config/content";
-import { MATERIAL_IDS, AREAS_MM2, LENGTHS_M, type MaterialId } from "@/config/physics";
+import { MATERIAL_IDS, AREA_RANGE, LENGTH_RANGE, onStep, type MaterialId } from "@/config/physics";
 import { changedProperties, currentmA, type Property } from "@/lib/physics";
 
 export const runtime = "nodejs";
@@ -46,7 +46,7 @@ function validateInput(body: unknown): { task: TaskId; explanation: string; tria
   const trials: InTrial[] = [];
   for (const t of b.trials as Record<string, unknown>[]) {
     if (!MATERIAL_IDS.includes(t.material as MaterialId)) return null;
-    if (!LENGTHS_M.includes(Number(t.length)) || !AREAS_MM2.includes(Number(t.area))) return null;
+    if (!onStep(Number(t.length), LENGTH_RANGE) || !onStep(Number(t.area), AREA_RANGE)) return null;
     trials.push({ label: String(t.label ?? "").slice(0, 8), material: t.material as MaterialId, length: Number(t.length), area: Number(t.area) });
   }
   return { task: b.task as TaskId, explanation: b.explanation.slice(0, 800), trials };

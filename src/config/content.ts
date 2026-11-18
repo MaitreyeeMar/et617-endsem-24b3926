@@ -8,10 +8,11 @@ import type { WireSettings } from "./physics.ts";
 export const CHALLENGE =
   "Your replacement wire must be twice as long. Can you keep the current meter at the same reading?";
 
-export const RIG_LABELS = {
-  reference: "Test A · Reference wire (fixed)",
-  test: "Test B · Your test wire",
-  sameVoltage: "Two separate tests under the same applied voltage (0.10 V).",
+export const BENCH_TEXT = {
+  slidersTitle: "Adjust the wire",
+  referenceLabel: "Reference observation",
+  locked: "Sliders unlock after you save your prediction",
+  saveHint: "Dragging is a live preview. Press Save trial to record a reading in your notebook.",
 };
 
 export const DIRECTION_LABEL: Record<Direction, string> = {
@@ -40,13 +41,20 @@ export const PREDICT_TASKS = {
     question: "Only the length of the nichrome wire doubles: 1.00 m → 2.00 m. What happens to the current?",
     correct: "decrease" as Direction,
     target: { material: "nichrome", length: 2.0, area: 0.5 } as WireSettings,
-    setupHint: "Set length to 2.00 m. Keep nichrome and 0.50 mm².",
-    independentHint: "Set up the test yourself. Change only what the question asks.",
+    setupHint: "Drag the length slider to 2.00 m. Watch the meter and the dots, then press Save trial.",
+    independentHint: "All sliders are open. Set up a fair test yourself — change only what the question asks — then Save trial.",
     chips: [
       { id: "l-more", text: "A longer wire has more metal, so more current can flow.", kind: "length_misconception" },
       { id: "l-path", text: "A longer wire is a longer path, so it has more resistance.", kind: "supported" },
       { id: "l-unsure", text: "I'm not sure yet.", kind: "unsure" },
     ] as ReasonChip[],
+    afterSave: {
+      length_misconception: (ref: string, now: string) =>
+        `You expected the longer wire to carry more current because it has more metal. The meter says ${now} mA — lower than the reference ${ref} mA. The dots crossed the marker at half the rate.`,
+      area_misconception: (ref: string, now: string) => `The reading went from ${ref} mA to ${now} mA.`,
+      wrongDirection: (ref: string, now: string) => `You predicted a different change. The meter went from ${ref} mA to ${now} mA.`,
+      unsure: (ref: string, now: string) => `Saved. The meter went from ${ref} mA to ${now} mA. Let's check what that shows.`,
+    },
     compareQuestion: "Which wire gave the higher reading? What stayed the same?",
     evidenceQuestion: "Which wire gave the higher reading?",
     reveal:
@@ -62,13 +70,20 @@ export const PREDICT_TASKS = {
     question: "Only the cross-sectional area doubles: 0.50 mm² → 1.00 mm². What happens to the current?",
     correct: "increase" as Direction,
     target: { material: "nichrome", length: 1.0, area: 1.0 } as WireSettings,
-    setupHint: "Set area to 1.00 mm². Keep nichrome and 1.00 m. Watch the end view grow.",
-    independentHint: "Set up the test yourself. Change only what the question asks.",
+    setupHint: "Drag the area slider to 1.00 mm². Watch the end face grow and the dots speed up, then press Save trial.",
+    independentHint: "All sliders are open. Set up a fair test yourself — change only what the question asks — then Save trial.",
     chips: [
       { id: "a-block", text: "A thicker wire has more material in the way, so less current.", kind: "area_misconception" },
       { id: "a-room", text: "A thicker wire gives more room for charge to flow, so less resistance.", kind: "supported" },
       { id: "a-unsure", text: "I'm not sure yet.", kind: "unsure" },
     ] as ReasonChip[],
+    afterSave: {
+      length_misconception: (ref: string, now: string) => `The reading went from ${ref} mA to ${now} mA.`,
+      area_misconception: (ref: string, now: string) =>
+        `You expected the thicker wire to block more current because more material is in the way. The meter says ${now} mA — higher than the reference ${ref} mA. The dots crossed the marker twice as fast.`,
+      wrongDirection: (ref: string, now: string) => `You predicted a different change. The meter went from ${ref} mA to ${now} mA.`,
+      unsure: (ref: string, now: string) => `Saved. The meter went from ${ref} mA to ${now} mA. Let's check what that shows.`,
+    },
     compareQuestion: "Which wire gave the higher reading? What stayed the same?",
     evidenceQuestion: "Which wire gave the higher reading?",
     reveal:
@@ -96,7 +111,7 @@ export const FORMULA_REVEAL = {
 
 // ── Task 3: material ─────────────────────────────────────────
 export const MATERIAL_TASK = {
-  instruction: "Test a copper wire and a nichrome wire with the same length and the same area.",
+  instruction: "The material slider is open. Slide to copper (same length and area as the reference), watch the meter, and Save trial.",
   selectPrompt: "Pick the two trials that best support a claim about material.",
   claimQuestion: "What do your two trials show?",
   claims: [
@@ -127,7 +142,7 @@ export const FAIR_TASK = {
     wrongYes: "Look again at the material row. Is it the same in G1 and G2?",
     wrongChanged: "Check each row: material, length, area. Tick only the rows that are different.",
   },
-  repairPrompt: "Repair the comparison: run one trial that changes ONLY the length from G1.",
+  repairPrompt: "Repair the comparison. The sliders start at G2. Make a wire that differs from G1 in length ONLY, then Save trial.",
   repairGood: "Fair test! Only length changed from G1 — and the current went down.",
   repairBad: (changed: string) => `That trial differs from G1 in ${changed}. Keep everything except length the same as G1.`,
   repairSame: "That is the same wire as G1. Change the length only.",
@@ -146,11 +161,12 @@ export const MYSTERY_TASK = {
     material: "The replacement must stay nichrome — same material as the reference.",
     length: "The replacement must be twice as long: 2.00 m.",
   },
+  stretchPrompt: "Step 1: drag the length slider to 2.00 m and Save trial. Watch what happens to the reading.",
   failQuestion: "Keep your new length. Which property could you test next?",
   nextChoices: [
-    { id: "area", text: "Area", reply: "Good choice. Try a different area and test again. Bigger area → less resistance." },
-    { id: "material", text: "Material", reply: "The task says same material (nichrome). Which other property is left?" },
-    { id: "length", text: "Length", reply: "Length must stay 2.00 m. Which other property could bring the current back up?" },
+    { id: "area", text: "Area", reply: "Area slider unlocked. Drag it and watch the meter. Bigger area → less resistance. Save trial when you think it matches." },
+    { id: "material", text: "Material", reply: "Material slider unlocked — try it. But remember the brief: the replacement must stay nichrome. Save trial to check." },
+    { id: "length", text: "Length", reply: "Length must stay 2.00 m — that is the whole challenge. Which other property could bring the current back up?" },
   ],
   tooLow: "Current is too low — this wire still has more resistance than the reference.",
   tooHigh: "Current is too high — this wire now has less resistance than the reference.",

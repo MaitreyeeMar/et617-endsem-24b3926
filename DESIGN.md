@@ -68,3 +68,12 @@ Persistent: Save & leave · New attempt
 
 ## 8. Bounded AI feature (D6)
 `POST /api/classify` receives the explanation, the selected trials and the task id. Server-side model call (key in env). Output must be one of `supported_reasoning | length_misconception | area_misconception | confounded_comparison | unclear`. The result is validated and cross-checked against the actual changed variables, then mapped to an authored follow-up question. On a missing key, timeout, invalid response or inconsistency, the app shows "Using built-in feedback" and uses a local rule-based, trial-specific prompt. All physics and success checks stay local.
+
+## 9. Revision v2 — live sliders
+The workbench now uses three sliders with live simulation, replacing the press-to-test meter. It has:
+- a stacked R = ρL/A whose symbols scale;
+- one illustrated wire with a dashed reference outline;
+- a flow-dot cue proportional to current;
+- one meter.
+
+Slider movement is a preview only. "Save trial" records a reading. Guided tasks unlock the relevant slider after the prediction is saved. In the final challenge, the learner chooses which property to change to restore the current.
